@@ -1,8 +1,10 @@
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QColor
 
 class WaveCanvas(QWidget):
+    step_changed = pyqtSignal(int, int, int)  # idx, interval, intensity
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumHeight(300)
@@ -24,21 +26,28 @@ class WaveCanvas(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#000000"))
+        painter.fillRect(self.rect(), QColor("#3a4149"))
 
-        painter.setPen(QPen(QColor("#333333"), 1))
+        # 竖向网格线 — 柔和
+        painter.setPen(QPen(QColor("#4d5660"), 1))
         for i in range(1, self.steps):
             x = i * self.step_width
             painter.drawLine(x, 0, x, self.height())
 
-        painter.setPen(QPen(QColor("#444444"), 2))
+        # 中心分隔线
+        painter.setPen(QPen(QColor("#6a7a88"), 1))
         painter.drawLine(0, 150, self.width(), 150)
-        self.draw_plot(painter, self.intervals, 150, QColor("#ffaa00"), 10, 255, 0)
-        self.draw_plot(painter, self.intensities, 150, QColor("#00ffcc"), 0, 100, 150)
+
+        # 波形填充背景（上半/下半区域淡色底）
+        painter.fillRect(0, 0, self.width(), 150, QColor(184, 200, 212, 30))   # #b8c8d4 透明填充
+        painter.fillRect(0, 150, self.width(), 150, QColor(184, 200, 212, 18))
+
+        self.draw_plot(painter, self.intervals,   150, QColor("#ffde7d"), 10, 1000, 0)
+        self.draw_plot(painter, self.intensities, 150, QColor("#ffe2e2"), 0, 100, 150)
 
     def draw_plot(self, painter, data, h, color, min_v, max_v, offset):
         path_points = []
-        painter.setPen(QPen(color, 2))
+        painter.setPen(QPen(color, 1))
         for i in range(self.steps):
             x = int(i * self.step_width + self.step_width / 2)
             val = data[i]
@@ -61,13 +70,14 @@ class WaveCanvas(QWidget):
 
         if 0 <= idx < self.steps:
             if y < 150:
-                val = int(255 - (y / 150) * 255)
-                self.intervals[idx] = max(10, min(255, val))
+                val = int(1000 - (y / 150) * 990)
+                self.intervals[idx] = max(10, min(1000, val))
             else:
                 val = int(100 - ((y - 150) / 150) * 100)
                 self.intensities[idx] = max(0, min(100, val))
             self.update()
             self.last_pos = curr_pos
+            self.step_changed.emit(idx, self.intervals[idx], self.intensities[idx])
 
     def mousePressEvent(self, event):
         self.is_drawing = True

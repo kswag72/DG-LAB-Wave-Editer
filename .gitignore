@@ -22,8 +22,15 @@ dist/
 Thumbs.db
 .DS_Store
 
-# Backup files
+# Backup / temp files
 main - 副本.py
+nul
 
-# Evidence (internal)
-.sisyphus/evidence/
+# Font files (download separately, see README)
+src/fonts/*.ttf
+
+# Archives
+*.zip
+
+# Internal tooling
+.sisyphus/

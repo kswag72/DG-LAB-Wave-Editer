@@ -1,14 +1,46 @@
 import math
 
-def generate_wave(wave_type, cycles, amplitude, steps):
-    result = []
-    for i in range(steps):
-        p = (i/(steps-1))*cycles*math.pi*2 if steps>1 else 0
-        if wave_type==0: v=(math.sin(p-math.pi/2)+1)/2*amplitude
-        elif wave_type==1: v=amplitude if math.sin(p)>=0 else 0
-        elif wave_type==2: v=((i*cycles/steps)%1)*amplitude
-        else: v=(1-abs(((i*cycles/steps)%1)*2-1))*amplitude
-        result.append(int(v))
+def generate_wave(wave_type, cycles, amplitude, steps, exponent=2.0, coeff=1.0, offset=0.0, range_lo=0, range_hi=None):
+    if range_hi is None:
+        range_hi = steps - 1
+    range_lo = max(0, min(range_lo, steps - 1))
+    range_hi = max(range_lo, min(range_hi, steps - 1))
+    span = range_hi - range_lo + 1
+    result = [0] * steps
+    for i in range(span):
+        t = i / (span - 1) if span > 1 else 0
+        if wave_type == 0:
+            p = t * cycles * math.pi * 2
+            v = (math.sin(p - math.pi / 2) + 1) / 2 * amplitude + offset
+        elif wave_type == 1:
+            p = t * cycles * math.pi * 2
+            v = (amplitude if math.sin(p) >= 0 else 0) + offset
+        elif wave_type == 2:
+            v = ((t * cycles) % 1) * amplitude + offset
+        elif wave_type == 3:
+            v = (1 - abs(((t * cycles) % 1) * 2 - 1)) * amplitude + offset
+        elif wave_type == 4:
+            v = coeff * (t ** exponent) * amplitude + offset
+        elif wave_type == 5:
+            v = coeff * (t ** 2) * amplitude + exponent * t * amplitude + offset
+        elif wave_type == 6:
+            if abs(exponent) < 0.01:
+                v = t * amplitude * coeff + offset
+            else:
+                v = coeff * (math.exp(exponent * t) - 1) / (math.exp(exponent) - 1) * amplitude + offset
+        elif wave_type == 7:
+            if abs(exponent) < 0.01:
+                v = t * amplitude * coeff + offset
+            else:
+                v = coeff * math.log(1 + t * (math.e ** exponent - 1)) / exponent * amplitude + offset
+        elif wave_type == 8:
+            v = amplitude * (1 - math.exp(-exponent * t * 5)) * coeff + offset
+        elif wave_type == 9:
+            v = amplitude * (0.5 + 0.5 * math.tanh((t - 0.5) * exponent * 4)) * coeff + offset
+        else:
+            v = 0
+        v = max(0, v)
+        result[range_lo + i] = int(v)
     return result
 
 def smooth_array(arr, n):
