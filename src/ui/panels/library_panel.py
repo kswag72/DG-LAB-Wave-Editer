@@ -1,16 +1,27 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                              QLabel, QScrollArea, QFrame, QFileDialog, QMessageBox)
 from PyQt6.QtCore import Qt, pyqtSignal
-from src.utils.data_loader import parse_json5_content, format_library_export
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtWidgets import (
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.utils.data_loader import format_library_export, parse_json5_content
 
 
 class LibraryPanel(QWidget):
     load_wave = pyqtSignal(dict)
     add_wave_to_seq = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.wave_lib = []
+        self.wave_lib: list[dict] = []
         self.setAcceptDrops(True)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -26,11 +37,11 @@ class LibraryPanel(QWidget):
         exp_lib_btn.clicked.connect(self.export_entire_library)
         lay.addWidget(exp_lib_btn)
 
-    def add_wave(self, wave):
+    def add_wave(self, wave: dict) -> None:
         self.wave_lib.append(wave)
         self.refresh_lib_ui()
 
-    def refresh_lib_ui(self):
+    def refresh_lib_ui(self) -> None:
         while self.lib_layout.count():
             item = self.lib_layout.takeAt(0)
             if item.widget():
@@ -63,19 +74,19 @@ class LibraryPanel(QWidget):
             h.addWidget(del_b)
             self.lib_layout.addWidget(frame)
 
-    def _on_load(self, i):
+    def _on_load(self, i: int) -> None:
         self.load_wave.emit(self.wave_lib[i])
 
-    def _on_add_to_seq(self, i):
+    def _on_add_to_seq(self, i: int) -> None:
         self.add_wave_to_seq.emit(self.wave_lib[i])
 
-    def del_from_lib(self, i):
+    def del_from_lib(self, i: int) -> None:
         del self.wave_lib[i]
         self.refresh_lib_ui()
 
-    def import_file(self, path):
+    def import_file(self, path: str) -> None:
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 data = parse_json5_content(f.read())
                 for item in data:
                     self.wave_lib.append(item)
@@ -83,21 +94,21 @@ class LibraryPanel(QWidget):
         except Exception as err:
             QMessageBox.critical(self, "解析错误", str(err))
 
-    def export_entire_library(self):
+    def export_entire_library(self) -> None:
         full = format_library_export(self.wave_lib)
         p, _ = QFileDialog.getSaveFileName(self, "导出资产库", "library.json5", "JSON5 (*.json5)")
         if p:
-            with open(p, 'w', encoding='utf-8') as f:
+            with open(p, "w", encoding="utf-8") as f:
                 f.write(full)
 
-    def dragEnterEvent(self, e):
+    def dragEnterEvent(self, e: QDragEnterEvent) -> None:
         if e.mimeData().hasUrls():
             e.accept()
         else:
             e.ignore()
 
-    def dropEvent(self, e):
+    def dropEvent(self, e: QDropEvent) -> None:
         for url in e.mimeData().urls():
             path = url.toLocalFile()
-            if path.endswith(('.json', '.json5')):
+            if path.endswith((".json", ".json5")):
                 self.import_file(path)

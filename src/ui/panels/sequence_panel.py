@@ -1,17 +1,28 @@
 import math
 import random
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                              QLabel, QScrollArea, QTextEdit, QSpinBox, QFileDialog)
+
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from src.utils.data_loader import format_pulse_export
 
 
 class SequencePanel(QWidget):
     save_to_lib = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.sequence = []
+        self.sequence: list[dict] = []
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
 
@@ -56,56 +67,61 @@ class SequencePanel(QWidget):
         btn_row.addWidget(down_btn)
         lay.addLayout(btn_row)
 
-    def add_wave(self, wave):
+    def add_wave(self, wave: dict) -> None:
         self.sequence.append({"type": "wave", **wave})
         self.refresh_seq_ui()
 
-    def add_gap_to_seq(self):
+    def add_gap_to_seq(self) -> None:
         self.sequence.append({"type": "gap", "name": "静默", "ms": self.gap_val.value()})
         self.refresh_seq_ui()
 
-    def clear_sequence(self):
+    def clear_sequence(self) -> None:
         self.sequence = []
         self.refresh_seq_ui()
 
-    def refresh_seq_ui(self):
+    def refresh_seq_ui(self) -> None:
         while self.seq_layout.count():
             item = self.seq_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
         for idx, s in enumerate(self.sequence):
-            txt = s['name'] if s['type'] == 'wave' else f"{s['ms']}ms"
+            txt = s["name"] if s["type"] == "wave" else f"{s['ms']}ms"
             tag = QPushButton(txt)
-            tag.setStyleSheet(f"background: {'#cbf1f5' if s['type']=='wave' else '#ffde7d'}; color: #2c3a42; font-weight: bold;")
+            tag.setStyleSheet(
+                f"background: {'#cbf1f5' if s['type'] == 'wave' else '#ffde7d'}; color: #2c3a42; font-weight: bold;"
+            )
             tag.clicked.connect(lambda ch, i=idx: (self.sequence.pop(i), self.refresh_seq_ui()))
             self.seq_layout.addWidget(tag)
         self.seq_layout.addStretch()
 
-    def save_sequence_to_library(self):
+    def save_sequence_to_library(self) -> None:
         if not self.sequence:
             return
-        c_int, c_vel = [], []
+        c_int: list[int] = []
+        c_vel: list[int] = []
         for s in self.sequence:
-            if s['type'] == 'wave':
-                c_int.extend(s['intervals'])
-                c_vel.extend(s['intensities'])
+            if s["type"] == "wave":
+                c_int.extend(s["intervals"])
+                c_vel.extend(s["intensities"])
             else:
-                steps = math.ceil(s['ms'] / 100)
+                steps = math.ceil(s["ms"] / 100)
                 c_int.extend([10] * steps)
                 c_vel.extend([0] * steps)
-        self.save_to_lib.emit({
-            "id": hex(random.getrandbits(32))[2:],
-            "name": "合成素材",
-            "intervals": c_int,
-            "intensities": c_vel,
-            "steps": len(c_int)
-        })
+        self.save_to_lib.emit(
+            {
+                "id": hex(random.getrandbits(32))[2:],
+                "name": "合成素材",
+                "intervals": c_int,
+                "intensities": c_vel,
+                "steps": len(c_int),
+            }
+        )
 
-    def generate_code(self, is_save):
+    def generate_code(self, is_save: bool) -> None:
         code = format_pulse_export(self.sequence)
         self.output.setText(code)
         if is_save:
             p, _ = QFileDialog.getSaveFileName(self, "保存", "export.json5", "JSON5 (*.json5)")
             if p:
-                with open(p, 'w', encoding='utf-8') as f:
+                with open(p, "w", encoding="utf-8") as f:
                     f.write(code)

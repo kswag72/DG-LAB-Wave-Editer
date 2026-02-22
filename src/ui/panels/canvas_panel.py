@@ -1,16 +1,28 @@
 import random
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                              QLabel, QLineEdit, QScrollArea, QSlider, QSpinBox, QFrame)
+
 from PyQt6.QtCore import Qt, pyqtSignal
-from src.ui.wave_canvas import WaveCanvas
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QSlider,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
+
 from src.ui.range_slider import RangeSlider
+from src.ui.wave_canvas import WaveCanvas
 
 
 class CanvasPanel(QWidget):
     save_wave = pyqtSignal(dict)
     steps_changed = pyqtSignal(int)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -98,7 +110,7 @@ class CanvasPanel(QWidget):
         ctrl_row.addWidget(rst_vel_btn)
         lay.addLayout(ctrl_row)
 
-    def sync_step_val(self, v):
+    def sync_step_val(self, v: int) -> None:
         self.step_slider.blockSignals(True)
         self.step_slider.setValue(v)
         self.step_slider.blockSignals(False)
@@ -109,40 +121,40 @@ class CanvasPanel(QWidget):
         self.canvas.update_geometry()
         self.steps_changed.emit(v)
 
-    def load_wave(self, wave):
-        new_steps = min(320, wave['steps'])
+    def load_wave(self, wave: dict) -> None:
+        new_steps = min(320, wave["steps"])
         self.sync_step_val(new_steps)
-        self.name_edit.setText(wave['name'])
+        self.name_edit.setText(wave["name"])
         for idx in range(new_steps):
-            self.canvas.intervals[idx] = wave['intervals'][idx]
-            self.canvas.intensities[idx] = wave['intensities'][idx]
+            self.canvas.intervals[idx] = wave["intervals"][idx]
+            self.canvas.intensities[idx] = wave["intensities"][idx]
         self.canvas.update()
 
-    def set_interval_val(self):
+    def set_interval_val(self) -> None:
         idx = self.p_idx.value()
         self.canvas.intervals[idx] = self.p_int.value()
         self.canvas.update()
 
-    def set_intensity_val(self):
+    def set_intensity_val(self) -> None:
         idx = self.p_idx.value()
         self.canvas.intensities[idx] = self.p_vel.value()
         self.canvas.update()
 
-    def batch_set_interval(self):
+    def batch_set_interval(self) -> None:
         lo, hi = self.batch_range.low(), self.batch_range.high()
         val = self.b_int.value()
         for i in range(lo, min(hi + 1, self.canvas.steps)):
             self.canvas.intervals[i] = val
         self.canvas.update()
 
-    def batch_set_intensity(self):
+    def batch_set_intensity(self) -> None:
         lo, hi = self.batch_range.low(), self.batch_range.high()
         val = self.b_vel.value()
         for i in range(lo, min(hi + 1, self.canvas.steps)):
             self.canvas.intensities[i] = val
         self.canvas.update()
 
-    def sync_precise_display(self, idx):
+    def sync_precise_display(self, idx: int) -> None:
         self.p_int.blockSignals(True)
         self.p_int.setValue(self.canvas.intervals[idx])
         self.p_int.blockSignals(False)
@@ -150,7 +162,7 @@ class CanvasPanel(QWidget):
         self.p_vel.setValue(self.canvas.intensities[idx])
         self.p_vel.blockSignals(False)
 
-    def on_canvas_step_changed(self, idx, interval, intensity):
+    def on_canvas_step_changed(self, idx: int, interval: int, intensity: int) -> None:
         if self.p_idx.value() == idx:
             self.p_int.blockSignals(True)
             self.p_int.setValue(interval)
@@ -159,24 +171,26 @@ class CanvasPanel(QWidget):
             self.p_vel.setValue(intensity)
             self.p_vel.blockSignals(False)
 
-    def reset_intervals(self):
+    def reset_intervals(self) -> None:
         self.canvas.intervals = [10] * 320
         self.canvas.update()
 
-    def reset_intensities(self):
+    def reset_intensities(self) -> None:
         self.canvas.intensities = [0] * 320
         self.canvas.update()
 
-    def save_to_lib(self):
-        self.save_wave.emit({
-            "id": hex(random.getrandbits(32))[2:],
-            "name": self.name_edit.text(),
-            "intervals": list(self.canvas.intervals[:self.canvas.steps]),
-            "intensities": list(self.canvas.intensities[:self.canvas.steps]),
-            "steps": self.canvas.steps
-        })
+    def save_to_lib(self) -> None:
+        self.save_wave.emit(
+            {
+                "id": hex(random.getrandbits(32))[2:],
+                "name": self.name_edit.text(),
+                "intervals": list(self.canvas.intervals[: self.canvas.steps]),
+                "intensities": list(self.canvas.intensities[: self.canvas.steps]),
+                "steps": self.canvas.steps,
+            }
+        )
 
-    def apply_generated(self, result, target, r_lo, r_hi):
+    def apply_generated(self, result: list[int], target: int, r_lo: int, r_hi: int) -> None:
         for i in range(r_lo, r_hi + 1):
             if target == 0:
                 self.canvas.intensities[i] = max(0, min(100, result[i]))
@@ -184,13 +198,14 @@ class CanvasPanel(QWidget):
                 self.canvas.intervals[i] = max(10, min(1000, result[i]))
         self.canvas.update()
 
-    def smooth(self):
+    def smooth(self) -> None:
         from src.utils.signal_ops import smooth_array
+
         self.canvas.intervals = smooth_array(self.canvas.intervals, self.canvas.steps)
         self.canvas.intensities = smooth_array(self.canvas.intensities, self.canvas.steps)
         self.canvas.update()
 
-    def update_range_bounds(self, v):
+    def update_range_bounds(self, v: int) -> None:
         upper = max(0, v - 1)
         self.batch_range.set_range_bounds(0, upper)
         if self.batch_range.high() >= v:

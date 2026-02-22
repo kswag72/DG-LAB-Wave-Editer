@@ -1,6 +1,17 @@
 import math
 
-def generate_wave(wave_type, cycles, amplitude, steps, exponent=2.0, coeff=1.0, offset=0.0, range_lo=0, range_hi=None):
+
+def generate_wave(
+    wave_type: int,
+    cycles: int,
+    amplitude: int,
+    steps: int,
+    exponent: float = 2.0,
+    coeff: float = 1.0,
+    offset: float = 0.0,
+    range_lo: int = 0,
+    range_hi: int | None = None,
+) -> list[int]:
     if range_hi is None:
         range_hi = steps - 1
     range_lo = max(0, min(range_lo, steps - 1))
@@ -20,9 +31,9 @@ def generate_wave(wave_type, cycles, amplitude, steps, exponent=2.0, coeff=1.0, 
         elif wave_type == 3:
             v = (1 - abs(((t * cycles) % 1) * 2 - 1)) * amplitude + offset
         elif wave_type == 4:
-            v = coeff * (t ** exponent) * amplitude + offset
+            v = coeff * (t**exponent) * amplitude + offset
         elif wave_type == 5:
-            v = coeff * (t ** 2) * amplitude + exponent * t * amplitude + offset
+            v = coeff * (t**2) * amplitude + exponent * t * amplitude + offset
         elif wave_type == 6:
             if abs(exponent) < 0.01:
                 v = t * amplitude * coeff + offset
@@ -32,7 +43,7 @@ def generate_wave(wave_type, cycles, amplitude, steps, exponent=2.0, coeff=1.0, 
             if abs(exponent) < 0.01:
                 v = t * amplitude * coeff + offset
             else:
-                v = coeff * math.log(1 + t * (math.e ** exponent - 1)) / exponent * amplitude + offset
+                v = coeff * math.log(1 + t * (math.e**exponent - 1)) / exponent * amplitude + offset
         elif wave_type == 8:
             v = amplitude * (1 - math.exp(-exponent * t * 5)) * coeff + offset
         elif wave_type == 9:
@@ -43,7 +54,9 @@ def generate_wave(wave_type, cycles, amplitude, steps, exponent=2.0, coeff=1.0, 
         result[range_lo + i] = int(v)
     return result
 
-def smooth_array(arr, n):
+
+def smooth_array(arr: list[int], n: int) -> list[int]:
     r = list(arr)
-    for i in range(1, n-1): r[i] = int(arr[i-1]*0.25 + arr[i]*0.5 + arr[i+1]*0.25)
+    for i in range(1, n - 1):
+        r[i] = int(arr[i - 1] * 0.25 + arr[i] * 0.5 + arr[i + 1] * 0.25)
     return r

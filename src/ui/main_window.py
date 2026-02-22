@@ -1,23 +1,26 @@
-import sys
 import os
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout
-from PyQt6.QtGui import QIcon
-from src.ui.panels.library_panel import LibraryPanel
+import sys
+
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QIcon
+from PyQt6.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
+
 from src.ui.panels.canvas_panel import CanvasPanel
 from src.ui.panels.func_panel import FuncPanel
+from src.ui.panels.library_panel import LibraryPanel
 from src.ui.panels.sequence_panel import SequencePanel
 from src.ui.styles import MAIN_STYLESHEET
 
-def _res(rel):
-    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, '..', '..', rel) if not getattr(sys, 'frozen', False) else os.path.join(sys._MEIPASS, rel)
+
+def _res(rel: str) -> str:
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, "..", "..", rel) if not getattr(sys, "frozen", False) else os.path.join(sys._MEIPASS, rel)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("coyote波形绘制器")
-        self.setWindowIcon(QIcon(_res('src/IOC.ico')))
+        self.setWindowIcon(QIcon(_res("src/IOC.ico")))
         self.resize(1350, 950)
         self.setAcceptDrops(True)
 
@@ -31,7 +34,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(MAIN_STYLESHEET)
         self.library.refresh_lib_ui()
 
-    def _assemble_layout(self):
+    def _assemble_layout(self) -> None:
         main_widget = QWidget()
         layout = QHBoxLayout(main_widget)
         mid = QVBoxLayout()
@@ -42,7 +45,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(mid, 4)
         self.setCentralWidget(main_widget)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self.library.load_wave.connect(self.canvas_panel.load_wave)
         self.library.add_wave_to_seq.connect(self.seq_panel.add_wave)
         self.canvas_panel.save_wave.connect(self.library.add_wave)
@@ -52,14 +55,14 @@ class MainWindow(QMainWindow):
         self.func_panel.smooth_requested.connect(self.canvas_panel.smooth)
         self.seq_panel.save_to_lib.connect(self.library.add_wave)
 
-    def dragEnterEvent(self, e):
+    def dragEnterEvent(self, e: QDragEnterEvent) -> None:
         if e.mimeData().hasUrls():
             e.accept()
         else:
             e.ignore()
 
-    def dropEvent(self, e):
+    def dropEvent(self, e: QDropEvent) -> None:
         for url in e.mimeData().urls():
             path = url.toLocalFile()
-            if path.endswith(('.json', '.json5')):
+            if path.endswith((".json", ".json5")):
                 self.library.import_file(path)

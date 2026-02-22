@@ -1,0 +1,16 @@
+[project]
+name = "pulse-wave-studio"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["ANN", "RET", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

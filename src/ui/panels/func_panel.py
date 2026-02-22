@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                              QLabel, QComboBox, QSpinBox, QDoubleSpinBox)
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget
+
 from src.ui.range_slider import RangeSlider
 from src.utils.signal_ops import generate_wave
 
@@ -9,7 +9,7 @@ class FuncPanel(QWidget):
     wave_generated = pyqtSignal(list, int, int, int)
     smooth_requested = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -18,7 +18,9 @@ class FuncPanel(QWidget):
         self.f_target = QComboBox()
         self.f_target.addItems(["强度", "间隔"])
         self.f_type = QComboBox()
-        self.f_type.addItems(["正弦波", "方波", "锯齿波", "三角波", "幂函数", "多项式", "指数函数", "对数函数", "指数衰减", "S形曲线"])
+        self.f_type.addItems(
+            ["正弦波", "方波", "锯齿波", "三角波", "幂函数", "多项式", "指数函数", "对数函数", "指数衰减", "S形曲线"]
+        )
         self.f_cyc = QSpinBox()
         self.f_cyc.setRange(1, 100)
         self.f_cyc.setValue(1)
@@ -70,7 +72,7 @@ class FuncPanel(QWidget):
         func_row3.addWidget(smooth_btn)
         lay.addLayout(func_row3)
 
-    def _sync_amp_range(self, idx):
+    def _sync_amp_range(self, idx: int) -> None:
         if idx == 0:
             self.f_amp.setRange(0, 100)
             if self.f_amp.value() > 100:
@@ -78,7 +80,7 @@ class FuncPanel(QWidget):
         else:
             self.f_amp.setRange(0, 1000)
 
-    def apply_func(self):
+    def apply_func(self) -> None:
         t = self.f_type.currentIndex()
         c, a, s = self.f_cyc.value(), self.f_amp.value(), self._steps
         exp, coeff, off = self.f_exp.value(), self.f_coeff.value(), self.f_offset.value()
@@ -87,7 +89,7 @@ class FuncPanel(QWidget):
         target = self.f_target.currentIndex()
         self.wave_generated.emit(result, target, r_lo, r_hi)
 
-    def set_max_step(self, v):
+    def set_max_step(self, v: int) -> None:
         self._steps = v
         upper = max(0, v - 1)
         self.f_range.set_range_bounds(0, upper)
@@ -95,9 +97,9 @@ class FuncPanel(QWidget):
             self.f_range.set_values(self.f_range.low(), upper)
 
     @property
-    def _steps(self):
-        return getattr(self, '_step_count', 60)
+    def _steps(self) -> int:
+        return getattr(self, "_step_count", 60)
 
     @_steps.setter
-    def _steps(self, v):
+    def _steps(self, v: int) -> None:
         self._step_count = v
