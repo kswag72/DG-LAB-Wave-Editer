@@ -1,4 +1,4 @@
-import random
+from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -14,18 +14,22 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from src.domain.models import Wave
+from src.services.wave_service import WaveService
 from src.ui.range_slider import RangeSlider
 from src.ui.wave_canvas import WaveCanvas
 
 
 class CanvasPanel(QWidget):
-    save_wave = pyqtSignal(dict)
+    save_wave = pyqtSignal(object)
     steps_changed = pyqtSignal(int)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, wave_service: WaveService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
+        self._wave_svc = wave_service
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.canvas_scroll = QScrollArea()
         self.canvas_scroll.setWidgetResizable(False)
@@ -33,58 +37,68 @@ class CanvasPanel(QWidget):
         self.canvas_scroll.setWidget(self.canvas)
         self.canvas_scroll.setFixedHeight(350)
         self.canvas_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        lay.addWidget(self.canvas_scroll)
+        layout.addWidget(self.canvas_scroll)
 
-        precise_row = QHBoxLayout()
-        self.p_idx = QSpinBox()
-        self.p_idx.setRange(0, 319)
-        self.p_idx.setPrefix("步骤: ")
-        self.p_int = QSpinBox()
-        self.p_int.setRange(10, 1000)
-        self.p_int.setValue(10)
-        self.p_int.setPrefix("间隔: ")
-        p_set_int = QPushButton("设置")
-        p_set_int.clicked.connect(self.set_interval_val)
-        self.p_vel = QSpinBox()
-        self.p_vel.setRange(0, 100)
-        self.p_vel.setValue(0)
-        self.p_vel.setPrefix("强度: ")
-        p_set_vel = QPushButton("设置")
-        p_set_vel.clicked.connect(self.set_intensity_val)
-        precise_row.addWidget(self.p_idx)
-        precise_row.addWidget(self.p_int)
-        precise_row.addWidget(p_set_int)
-        precise_row.addWidget(self.p_vel)
-        precise_row.addWidget(p_set_vel)
-        precise_row.addStretch()
-        lay.addLayout(precise_row)
-        self.p_idx.valueChanged.connect(self.sync_precise_display)
-        self.canvas.step_changed.connect(self.on_canvas_step_changed)
+        self._build_precise_row(layout)
+        self._build_batch_row(layout)
+        self._build_control_row(layout)
 
-        batch_row = QHBoxLayout()
+    def _build_precise_row(self, parent_layout: QVBoxLayout) -> None:
+        row = QHBoxLayout()
+        self.precise_index = QSpinBox()
+        self.precise_index.setRange(0, 319)
+        self.precise_index.setPrefix("步骤: ")
+        self.precise_interval = QSpinBox()
+        self.precise_interval.setRange(10, 1000)
+        self.precise_interval.setValue(10)
+        self.precise_interval.setPrefix("间隔: ")
+        set_interval_button = QPushButton("设置")
+        set_interval_button.clicked.connect(self._set_interval_at_index)
+        self.precise_intensity = QSpinBox()
+        self.precise_intensity.setRange(0, 100)
+        self.precise_intensity.setValue(0)
+        self.precise_intensity.setPrefix("强度: ")
+        set_intensity_button = QPushButton("设置")
+        set_intensity_button.clicked.connect(self._set_intensity_at_index)
+
+        row.addWidget(self.precise_index)
+        row.addWidget(self.precise_interval)
+        row.addWidget(set_interval_button)
+        row.addWidget(self.precise_intensity)
+        row.addWidget(set_intensity_button)
+        row.addStretch()
+        parent_layout.addLayout(row)
+
+        self.precise_index.valueChanged.connect(self._sync_precise_display)
+        self.canvas.step_changed.connect(self._on_canvas_step_changed)
+
+    def _build_batch_row(self, parent_layout: QVBoxLayout) -> None:
+        row = QHBoxLayout()
         self.batch_range = RangeSlider(0, 319)
         self.batch_range.set_values(0, 59)
-        self.b_int = QSpinBox()
-        self.b_int.setRange(10, 1000)
-        self.b_int.setValue(10)
-        self.b_int.setPrefix("间隔: ")
-        b_set_int = QPushButton("批量设置间隔")
-        b_set_int.clicked.connect(self.batch_set_interval)
-        self.b_vel = QSpinBox()
-        self.b_vel.setRange(0, 100)
-        self.b_vel.setValue(0)
-        self.b_vel.setPrefix("强度: ")
-        b_set_vel = QPushButton("批量设置强度")
-        b_set_vel.clicked.connect(self.batch_set_intensity)
-        batch_row.addWidget(QLabel("范围:"))
-        batch_row.addWidget(self.batch_range, 1)
-        batch_row.addWidget(self.b_int)
-        batch_row.addWidget(b_set_int)
-        batch_row.addWidget(self.b_vel)
-        batch_row.addWidget(b_set_vel)
-        lay.addLayout(batch_row)
+        self.batch_interval = QSpinBox()
+        self.batch_interval.setRange(10, 1000)
+        self.batch_interval.setValue(10)
+        self.batch_interval.setPrefix("间隔: ")
+        batch_interval_button = QPushButton("批量设置间隔")
+        batch_interval_button.clicked.connect(self._batch_set_interval)
+        self.batch_intensity = QSpinBox()
+        self.batch_intensity.setRange(0, 100)
+        self.batch_intensity.setValue(0)
+        self.batch_intensity.setPrefix("强度: ")
+        batch_intensity_button = QPushButton("批量设置强度")
+        batch_intensity_button.clicked.connect(self._batch_set_intensity)
 
-        ctrl_row = QHBoxLayout()
+        row.addWidget(QLabel("范围:"))
+        row.addWidget(self.batch_range, 1)
+        row.addWidget(self.batch_interval)
+        row.addWidget(batch_interval_button)
+        row.addWidget(self.batch_intensity)
+        row.addWidget(batch_intensity_button)
+        parent_layout.addLayout(row)
+
+    def _build_control_row(self, parent_layout: QVBoxLayout) -> None:
+        row = QHBoxLayout()
         self.name_edit = QLineEdit("未命名素材")
         self.step_slider = QSlider(Qt.Orientation.Horizontal)
         self.step_slider.setRange(1, 320)
@@ -92,121 +106,124 @@ class CanvasPanel(QWidget):
         self.step_spin = QSpinBox()
         self.step_spin.setRange(1, 320)
         self.step_spin.setValue(60)
-        self.step_slider.valueChanged.connect(self.sync_step_val)
-        self.step_spin.valueChanged.connect(self.sync_step_val)
-        save_btn = QPushButton("保存到库")
-        save_btn.clicked.connect(self.save_to_lib)
-        rst_int_btn = QPushButton("重置间隔")
-        rst_int_btn.clicked.connect(self.reset_intervals)
-        rst_vel_btn = QPushButton("重置强度")
-        rst_vel_btn.clicked.connect(self.reset_intensities)
-        ctrl_row.addWidget(QLabel("名称:"))
-        ctrl_row.addWidget(self.name_edit)
-        ctrl_row.addWidget(QLabel("小节数:"))
-        ctrl_row.addWidget(self.step_slider)
-        ctrl_row.addWidget(self.step_spin)
-        ctrl_row.addWidget(save_btn)
-        ctrl_row.addWidget(rst_int_btn)
-        ctrl_row.addWidget(rst_vel_btn)
-        lay.addLayout(ctrl_row)
+        self.step_slider.valueChanged.connect(self._sync_step_value)
+        self.step_spin.valueChanged.connect(self._sync_step_value)
 
-    def sync_step_val(self, v: int) -> None:
+        save_button = QPushButton("保存到库")
+        save_button.clicked.connect(self._save_to_library)
+        reset_interval_button = QPushButton("重置间隔")
+        reset_interval_button.clicked.connect(self._reset_intervals)
+        reset_intensity_button = QPushButton("重置强度")
+        reset_intensity_button.clicked.connect(self._reset_intensities)
+
+        row.addWidget(QLabel("名称:"))
+        row.addWidget(self.name_edit)
+        row.addWidget(QLabel("小节数:"))
+        row.addWidget(self.step_slider)
+        row.addWidget(self.step_spin)
+        row.addWidget(save_button)
+        row.addWidget(reset_interval_button)
+        row.addWidget(reset_intensity_button)
+        parent_layout.addLayout(row)
+
+    def _sync_step_value(self, value: int) -> None:
         self.step_slider.blockSignals(True)
-        self.step_slider.setValue(v)
+        self.step_slider.setValue(value)
         self.step_slider.blockSignals(False)
         self.step_spin.blockSignals(True)
-        self.step_spin.setValue(v)
+        self.step_spin.setValue(value)
         self.step_spin.blockSignals(False)
-        self.canvas.steps = v
+        self.canvas.steps = value
         self.canvas.update_geometry()
-        self.steps_changed.emit(v)
+        self.steps_changed.emit(value)
 
-    def load_wave(self, wave: dict) -> None:
-        new_steps = min(320, wave["steps"])
-        self.sync_step_val(new_steps)
-        self.name_edit.setText(wave["name"])
+    def load_wave(self, wave: Wave) -> None:
+        new_steps = min(320, wave.steps)
+        self._sync_step_value(new_steps)
+        self.name_edit.setText(wave.name)
         for idx in range(new_steps):
-            self.canvas.intervals[idx] = wave["intervals"][idx]
-            self.canvas.intensities[idx] = wave["intensities"][idx]
+            self.canvas.intervals[idx] = wave.intervals[idx]
+            self.canvas.intensities[idx] = wave.intensities[idx]
         self.canvas.update()
 
-    def set_interval_val(self) -> None:
-        idx = self.p_idx.value()
-        self.canvas.intervals[idx] = self.p_int.value()
+    def _set_interval_at_index(self) -> None:
+        idx = self.precise_index.value()
+        self.canvas.intervals[idx] = self.precise_interval.value()
         self.canvas.update()
 
-    def set_intensity_val(self) -> None:
-        idx = self.p_idx.value()
-        self.canvas.intensities[idx] = self.p_vel.value()
+    def _set_intensity_at_index(self) -> None:
+        idx = self.precise_index.value()
+        self.canvas.intensities[idx] = self.precise_intensity.value()
         self.canvas.update()
 
-    def batch_set_interval(self) -> None:
+    def _batch_set_interval(self) -> None:
         lo, hi = self.batch_range.low(), self.batch_range.high()
-        val = self.b_int.value()
+        value = self.batch_interval.value()
         for i in range(lo, min(hi + 1, self.canvas.steps)):
-            self.canvas.intervals[i] = val
+            self.canvas.intervals[i] = value
         self.canvas.update()
 
-    def batch_set_intensity(self) -> None:
+    def _batch_set_intensity(self) -> None:
         lo, hi = self.batch_range.low(), self.batch_range.high()
-        val = self.b_vel.value()
+        value = self.batch_intensity.value()
         for i in range(lo, min(hi + 1, self.canvas.steps)):
-            self.canvas.intensities[i] = val
+            self.canvas.intensities[i] = value
         self.canvas.update()
 
-    def sync_precise_display(self, idx: int) -> None:
-        self.p_int.blockSignals(True)
-        self.p_int.setValue(self.canvas.intervals[idx])
-        self.p_int.blockSignals(False)
-        self.p_vel.blockSignals(True)
-        self.p_vel.setValue(self.canvas.intensities[idx])
-        self.p_vel.blockSignals(False)
+    def _sync_precise_display(self, idx: int) -> None:
+        self.precise_interval.blockSignals(True)
+        self.precise_interval.setValue(self.canvas.intervals[idx])
+        self.precise_interval.blockSignals(False)
+        self.precise_intensity.blockSignals(True)
+        self.precise_intensity.setValue(self.canvas.intensities[idx])
+        self.precise_intensity.blockSignals(False)
 
-    def on_canvas_step_changed(self, idx: int, interval: int, intensity: int) -> None:
-        if self.p_idx.value() == idx:
-            self.p_int.blockSignals(True)
-            self.p_int.setValue(interval)
-            self.p_int.blockSignals(False)
-            self.p_vel.blockSignals(True)
-            self.p_vel.setValue(intensity)
-            self.p_vel.blockSignals(False)
+    def _on_canvas_step_changed(self, idx: int, interval: int, intensity: int) -> None:
+        if self.precise_index.value() == idx:
+            self.precise_interval.blockSignals(True)
+            self.precise_interval.setValue(interval)
+            self.precise_interval.blockSignals(False)
+            self.precise_intensity.blockSignals(True)
+            self.precise_intensity.setValue(intensity)
+            self.precise_intensity.blockSignals(False)
 
-    def reset_intervals(self) -> None:
+    def _reset_intervals(self) -> None:
         self.canvas.intervals = [10] * 320
         self.canvas.update()
 
-    def reset_intensities(self) -> None:
+    def _reset_intensities(self) -> None:
         self.canvas.intensities = [0] * 320
         self.canvas.update()
 
-    def save_to_lib(self) -> None:
-        self.save_wave.emit(
-            {
-                "id": hex(random.getrandbits(32))[2:],
-                "name": self.name_edit.text(),
-                "intervals": list(self.canvas.intervals[: self.canvas.steps]),
-                "intensities": list(self.canvas.intensities[: self.canvas.steps]),
-                "steps": self.canvas.steps,
-            }
+    def _save_to_library(self) -> None:
+        wave = self._wave_svc.create_wave(
+            name=self.name_edit.text(),
+            intervals=self.canvas.intervals[: self.canvas.steps],
+            intensities=self.canvas.intensities[: self.canvas.steps],
         )
+        self.save_wave.emit(wave)
 
-    def apply_generated(self, result: list[int], target: int, r_lo: int, r_hi: int) -> None:
-        for i in range(r_lo, r_hi + 1):
-            if target == 0:
-                self.canvas.intensities[i] = max(0, min(100, result[i]))
-            else:
-                self.canvas.intervals[i] = max(10, min(1000, result[i]))
+    def apply_generated(self, result: list[int], target: int, range_lo: int, range_hi: int) -> None:
+        self._wave_svc.apply_generated_values(
+            self.canvas.intervals,
+            self.canvas.intensities,
+            result=result,
+            target=target,
+            range_lo=range_lo,
+            range_hi=range_hi,
+        )
         self.canvas.update()
 
     def smooth(self) -> None:
-        from src.utils.signal_ops import smooth_array
-
-        self.canvas.intervals = smooth_array(self.canvas.intervals, self.canvas.steps)
-        self.canvas.intensities = smooth_array(self.canvas.intensities, self.canvas.steps)
+        smoothed_intervals, smoothed_intensities = self._wave_svc.smooth(
+            self.canvas.intervals, self.canvas.intensities, self.canvas.steps
+        )
+        self.canvas.intervals = smoothed_intervals
+        self.canvas.intensities = smoothed_intensities
         self.canvas.update()
 
-    def update_range_bounds(self, v: int) -> None:
-        upper = max(0, v - 1)
+    def update_range_bounds(self, value: int) -> None:
+        upper = max(0, value - 1)
         self.batch_range.set_range_bounds(0, upper)
-        if self.batch_range.high() >= v:
+        if self.batch_range.high() >= value:
             self.batch_range.set_values(self.batch_range.low(), upper)

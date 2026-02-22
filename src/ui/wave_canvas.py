@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget
 
 
 class WaveCanvas(QWidget):
-    step_changed = pyqtSignal(int, int, int)  # idx, interval, intensity
+    step_changed = pyqtSignal(int, int, int)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -29,18 +29,15 @@ class WaveCanvas(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor("#3a4149"))
 
-        # 竖向网格线 — 柔和
         painter.setPen(QPen(QColor("#4d5660"), 1))
         for i in range(1, self.steps):
             x = i * self.step_width
             painter.drawLine(x, 0, x, self.height())
 
-        # 中心分隔线
         painter.setPen(QPen(QColor("#6a7a88"), 1))
         painter.drawLine(0, 150, self.width(), 150)
 
-        # 波形填充背景（上半/下半区域淡色底）
-        painter.fillRect(0, 0, self.width(), 150, QColor(184, 200, 212, 30))  # #b8c8d4 透明填充
+        painter.fillRect(0, 0, self.width(), 150, QColor(184, 200, 212, 30))
         painter.fillRect(0, 150, self.width(), 150, QColor(184, 200, 212, 18))
 
         self.draw_plot(painter, self.intervals, 150, QColor("#ffde7d"), 10, 1000, 0)

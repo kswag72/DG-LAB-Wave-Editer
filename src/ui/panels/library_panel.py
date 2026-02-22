@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import (
@@ -12,103 +14,121 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.utils.data_loader import format_library_export, parse_json5_content
+from src.domain.models import Wave
+from src.repositories.json5_library_repository import Json5LibraryRepository
 
 
 class LibraryPanel(QWidget):
-    load_wave = pyqtSignal(dict)
-    add_wave_to_seq = pyqtSignal(dict)
+    load_wave = pyqtSignal(object)
+    add_wave_to_seq = pyqtSignal(object)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        library_repository: Json5LibraryRepository,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
-        self.wave_lib: list[dict] = []
+        self._repo = library_repository
+        self.wave_lib: list[Wave] = []
         self.setAcceptDrops(True)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(QLabel("素材库 (JSON5)"))
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(QLabel("素材库 (JSON5)"))
+
         self.lib_scroll = QScrollArea()
         self.lib_container = QWidget()
         self.lib_layout = QVBoxLayout(self.lib_container)
         self.lib_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.lib_scroll.setWidget(self.lib_container)
         self.lib_scroll.setWidgetResizable(True)
-        lay.addWidget(self.lib_scroll)
-        exp_lib_btn = QPushButton("导出资产库")
-        exp_lib_btn.clicked.connect(self.export_entire_library)
-        lay.addWidget(exp_lib_btn)
+        layout.addWidget(self.lib_scroll)
 
-    def add_wave(self, wave: dict) -> None:
+        export_button = QPushButton("导出资产库")
+        export_button.clicked.connect(self._export_library)
+        layout.addWidget(export_button)
+
+    def add_wave(self, wave: Wave) -> None:
         self.wave_lib.append(wave)
-        self.refresh_lib_ui()
+        self._refresh_ui()
 
-    def refresh_lib_ui(self) -> None:
+    def _refresh_ui(self) -> None:
+        self._clear_layout()
+        if not self.wave_lib:
+            self._show_empty_hint()
+            return
+        for index, wave in enumerate(self.wave_lib):
+            self.lib_layout.addWidget(self._build_wave_row(index, wave))
+
+    def _clear_layout(self) -> None:
         while self.lib_layout.count():
             item = self.lib_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-        if not self.wave_lib:
-            hint = QLabel("拖入 pulse.json5 文件以导入波形")
-            hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            hint.setWordWrap(True)
-            hint.setStyleSheet("color: #7a8a96; font-size: 13px; padding: 20px;")
-            self.lib_layout.addWidget(hint)
-            return
-        for idx, w in enumerate(self.wave_lib):
-            frame = QFrame()
-            frame.setStyleSheet("background: #2e3740; border-radius: 4px; margin: 2px;")
-            h = QHBoxLayout(frame)
-            h.setContentsMargins(5, 2, 5, 2)
-            lbl = QPushButton(f"{w['name']} ({w['steps']}节)")
-            lbl.setStyleSheet("border:none; text-align:left; color: #cbf1f5;")
-            lbl.clicked.connect(lambda ch, i=idx: self._on_load(i))
-            add_b = QPushButton("+")
-            add_b.setFixedWidth(30)
-            add_b.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
-            add_b.clicked.connect(lambda ch, i=idx: self._on_add_to_seq(i))
-            del_b = QPushButton("×")
-            del_b.setFixedWidth(30)
-            del_b.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
-            del_b.clicked.connect(lambda ch, i=idx: self.del_from_lib(i))
-            h.addWidget(lbl)
-            h.addWidget(add_b)
-            h.addWidget(del_b)
-            self.lib_layout.addWidget(frame)
 
-    def _on_load(self, i: int) -> None:
-        self.load_wave.emit(self.wave_lib[i])
+    def _show_empty_hint(self) -> None:
+        hint = QLabel("拖入 pulse.json5 文件以导入波形")
+        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #7a8a96; font-size: 13px; padding: 20px;")
+        self.lib_layout.addWidget(hint)
 
-    def _on_add_to_seq(self, i: int) -> None:
-        self.add_wave_to_seq.emit(self.wave_lib[i])
+    def _build_wave_row(self, index: int, wave: Wave) -> QFrame:
+        frame = QFrame()
+        frame.setStyleSheet("background: #2e3740; border-radius: 4px; margin: 2px;")
+        row = QHBoxLayout(frame)
+        row.setContentsMargins(5, 2, 5, 2)
 
-    def del_from_lib(self, i: int) -> None:
-        del self.wave_lib[i]
-        self.refresh_lib_ui()
+        name_button = QPushButton(f"{wave.name} ({wave.steps}节)")
+        name_button.setStyleSheet("border:none; text-align:left; color: #cbf1f5;")
+        name_button.clicked.connect(lambda _checked, idx=index: self._on_load(idx))
+
+        add_button = QPushButton("+")
+        add_button.setFixedWidth(30)
+        add_button.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
+        add_button.clicked.connect(lambda _checked, idx=index: self._on_add_to_seq(idx))
+
+        delete_button = QPushButton("×")
+        delete_button.setFixedWidth(30)
+        delete_button.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
+        delete_button.clicked.connect(lambda _checked, idx=index: self._delete_wave(idx))
+
+        row.addWidget(name_button)
+        row.addWidget(add_button)
+        row.addWidget(delete_button)
+        return frame
+
+    def _on_load(self, index: int) -> None:
+        self.load_wave.emit(self.wave_lib[index])
+
+    def _on_add_to_seq(self, index: int) -> None:
+        self.add_wave_to_seq.emit(self.wave_lib[index])
+
+    def _delete_wave(self, index: int) -> None:
+        del self.wave_lib[index]
+        self._refresh_ui()
 
     def import_file(self, path: str) -> None:
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = parse_json5_content(f.read())
-                for item in data:
-                    self.wave_lib.append(item)
-                self.refresh_lib_ui()
+            imported_waves = self._repo.load(path)
+            self.wave_lib.extend(imported_waves)
+            self._refresh_ui()
         except Exception as err:
             QMessageBox.critical(self, "解析错误", str(err))
 
-    def export_entire_library(self) -> None:
-        full = format_library_export(self.wave_lib)
-        p, _ = QFileDialog.getSaveFileName(self, "导出资产库", "library.json5", "JSON5 (*.json5)")
-        if p:
-            with open(p, "w", encoding="utf-8") as f:
-                f.write(full)
+    def _export_library(self) -> None:
+        file_path, _ = QFileDialog.getSaveFileName(self, "导出资产库", "library.json5", "JSON5 (*.json5)")
+        if file_path:
+            self._repo.save(file_path, self.wave_lib)
 
-    def dragEnterEvent(self, e: QDragEnterEvent) -> None:
-        if e.mimeData().hasUrls():
-            e.accept()
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            event.accept()
         else:
-            e.ignore()
+            event.ignore()
 
-    def dropEvent(self, e: QDropEvent) -> None:
-        for url in e.mimeData().urls():
+    def dropEvent(self, event: QDropEvent) -> None:
+        for url in event.mimeData().urls():
             path = url.toLocalFile()
             if path.endswith((".json", ".json5")):
                 self.import_file(path)
