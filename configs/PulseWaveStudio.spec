@@ -1,12 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Run from project root: python -m PyInstaller configs/PulseWaveStudio.spec --clean
 
+import os
+ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))
+
 
 a = Analysis(
-    ['src/main.py'],
-    pathex=['.'],
+    [os.path.join(ROOT, 'src/main.py')],
+    pathex=[ROOT],
     binaries=[],
-    datas=[('src/IOC.ico', 'src'), ('src/fonts/MapleMono-NF-CN-ExtraBold.ttf', 'src/fonts')],
+    datas=[(os.path.join(ROOT, 'src/IOC.ico'), 'src'), (os.path.join(ROOT, 'src/fonts/MapleMono-NF-CN-ExtraBold.ttf'), 'src/fonts')],
     hiddenimports=[
         'src',
         'src.domain',
@@ -45,7 +48,7 @@ exe = EXE(
     a.datas,
     [],
     name='PulseWaveStudio',
-    icon='src/IOC.ico',
+    icon=os.path.join(ROOT, 'src/IOC.ico'),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
