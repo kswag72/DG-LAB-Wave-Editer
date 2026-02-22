@@ -7,8 +7,8 @@
 DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形可视化编辑器。它允许用户通过数学函数生成、手动绘制以及拼接复杂的波形序列。
 
 - 技术栈：Python 3.10+, PyQt6, JSON5
-- 核心功能：波形函数生成、可视化画布编辑、素材库管理、序列拼接与导出
- 开源地址：https://github.com/kswag72/DG-LAB-Wave-Editer
+- 核心功能：波形函数生成、可视化画布编辑、素材库管理、序列拼接与导出、Raw/V3 格式双向转换
+- 开源地址：https://github.com/kswag72/DG-LAB-Wave-Editer
 
 ## 2. 项目结构
 
@@ -33,12 +33,13 @@ DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形�
 │   ├── fonts/                           # 字体目录 (需放置 Maple Mono NF CN)
 │   ├── domain/
 │   │   ├── __init__.py
-│   │   └── models.py                    # 领域模型 (Wave, WaveItem, SequenceEntry)
+│   │   └── models.py                    # 领域模型 (Wave, WaveItem, SequenceEntry, MAX_STEPS)
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── id_service.py                # ID 生成服务
 │   │   ├── wave_service.py              # 波形数学计算、平滑处理
-│   │   └── sequence_service.py          # 序列拼接、数据转换与导出逻辑
+│   │   ├── sequence_service.py          # 序列拼接、数据转换与导出逻辑
+│   │   └── conversion_service.py        # raw 字符串与 expectedV3 格式双向转换
 │   ├── repositories/
 │   |   ├── __init__.py
 │   │   ├── json5_library_repository.py  # 波形库持久化 (JSON5 格式)
@@ -46,14 +47,15 @@ DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形�
 │   └── ui/
 │       ├── __init__.py
 │       ├── main_window.py               # 主窗口：组装 DI、信号路由
-│       ├── wave_canvas.py               # 自定义 QWidget 绘图控件
+│       ├── wave_canvas.py               # 自定义 QWidget 绘图控件 (多图表类型 + 段落标签)
 │       ├── range_slider.py              # 自定义双端范围选择滑条
 │       ├── styles.py                    # 全局 QSS 样式表定义
 │       └── panels/
 │           ├── __init__.py
-│           ├── library_panel.py         # 素材库 UI 面板
-│           ├── canvas_panel.py          # 画布操作 UI 面板
-│           ├── func_panel.py            # 函数生成器 UI 面板
+│           ├── library_panel.py         # 素材库 UI 面板 (可编辑波形名称)
+│           ├── canvas_panel.py          # 画布操作 UI 面板 (图表类型切换)
+│           ├── func_panel.py            # 函数生成器 UI 面板 (QGroupBox 布局)
+│           ├── raw_panel.py             # Raw 字符串导入/导出面板
 │           └── sequence_panel.py        # 序列拼接 UI 面板
 ```
 
@@ -67,13 +69,14 @@ DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形�
 - `WaveItem`: 包装 Wave 的条目，用于序列显示。
 - `GapItem`: 包装静默时长（毫秒）的条目。
 - `SequenceEntry`: `WaveItem | GapItem` 的联合类型。
-- `MAX_STEPS = 320`: 限制单个波形的最大步数。
+- `MAX_STEPS = 100`: 限制单个波形的最大步数。
 
 ### Service 层
 处理纯业务逻辑，不涉及任何 UI 控件。
 - `IdService`: 负责生成 32 位随机十六进制 ID，确保每个波形在库中唯一。
 - `WaveService`: 包含正弦、方波、锯齿、三角、幂、多项式、指数、对数、指数衰减、S形等 10 种内置数学函数。它还负责波形的平滑、钳位（Clamp）处理。
 - `SequenceService`: 负责将多个 `WaveItem` 和 `GapItem` 合并为单个 `Wave`，并将其转化为 DG-Lab 协议所需的十六进制字符串。
+- `ConversionService`: 负责 raw 字符串（十六进制脉冲数据）与 expectedV3 波形格式之间的双向转换。提供 `raw_to_v3` 和 `v3_to_raw` 两个静态方法。
 
 ### Repository 层
 处理数据的持久化与反序列化。
@@ -92,6 +95,8 @@ UI 面板（Panels）只负责处理用户交互信号。所有的逻辑请求�
 [FuncPanel] --smooth_requested()--> [CanvasPanel]
 [LibraryPanel] --add_wave_to_seq(Wave)--> [SequencePanel]
 [SequencePanel] --save_to_lib(Wave)--> [LibraryPanel]
+[RawPanel] --import_wave(Wave)--> [CanvasPanel] + [LibraryPanel]
+[RawPanel] <--export_wave(Wave)-- [LibraryPanel]
 ```
 
 **注入流程：**
@@ -109,6 +114,7 @@ self.library = LibraryPanel(library_repository)
 self.canvas_panel = CanvasPanel(wave_service)
 self.func_panel = FuncPanel(wave_service)
 self.seq_panel = SequencePanel(sequence_service, pulse_repository)
+self.raw_panel = RawPanel()
 ```
 
 ## 4. 开发环境搭建
@@ -164,7 +170,7 @@ ruff format src/
 ## 6. 二次开发指南：常见场景
 
 ### 6.1 新增波形函数
-假设要增加一个“随机噪声”函数：
+假设要增加一个"随机噪声"函数：
 
 1. 在 `src/services/wave_service.py` 的 `_compute_wave_value` 方法中添加分支：
 ```python
@@ -187,7 +193,7 @@ self.function_combo.addItems(
 ```
 
 ### 6.2 新增领域模型
-如果需要支持“波形标签”功能：
+如果需要支持"波形标签"功能：
 
 1. 在 `src/domain/models.py` 中新增：
 ```python
@@ -313,6 +319,23 @@ DG-Lab 的十六进制格式遵循以下逻辑：
 - 主色调（青色）：`#cbf1f5`
 - 强调色（粉色）：`#ffe2e2`
 - 辅助色（黄色）：`#ffde7d`
+
+### 6.7 Raw/V3 格式转换
+`ConversionService` 提供 raw 字符串与 expectedV3 格式之间的双向转换，位于 `src/services/conversion_service.py`。
+
+- `raw_to_v3(raw: str) -> list[dict]`：将十六进制 raw 字符串解析为 expectedV3 格式的字典列表。
+- `v3_to_raw(v3_data: list[dict]) -> str`：将 expectedV3 格式的字典列表编码为 raw 十六进制字符串。
+
+如需扩展新的转换格式，在 `ConversionService` 中添加对应的静态方法即可。`RawPanel` 面板已内置导入/导出 UI，可直接粘贴 raw 字符串导入波形或将波形导出为 raw 字符串。
+
+### 6.8 画布图表类型
+`WaveCanvas` 支持四种图表显示类型，通过 `chart_type` 属性切换：
+- `0` — 折线图（默认）
+- `1` — 面积图
+- `2` — 散点图
+- `3` — 阶梯图
+
+如需新增图表类型，在 `wave_canvas.py` 的 `_draw_plot` 方法中添加新的 `elif` 分支，并在 `canvas_panel.py` 的图表类型下拉框中添加对应选项。
 
 ## 7. DG-Lab Pulse 数据格式参考
 
