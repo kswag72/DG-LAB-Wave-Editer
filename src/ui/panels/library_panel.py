@@ -105,7 +105,9 @@ class LibraryPanel(QWidget):
         raw_button = QPushButton("R")
         raw_button.setFixedWidth(30)
         raw_button.setStyleSheet(
-            "background-color: #a8d8a8; color: #1a4a1a; font-weight: bold;" if selected else "background-color: #ffe2e2; color: #8b4a4a; font-weight: bold;"
+            "background-color: #ffde7d; color: #6b5a00; font-weight: bold;"
+            if selected
+            else "background-color: #ffe2e2; color: #8b4a4a; font-weight: bold;"
         )
         raw_button.clicked.connect(lambda _checked, idx=index: self._on_toggle_raw(idx))
         delete_button = QPushButton("×")
