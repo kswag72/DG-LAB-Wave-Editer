@@ -32,6 +32,7 @@ class RawPanel(QWidget):
         self._wave_svc = wave_service
         self._current_wave: Wave | None = None
 
+        self._raw_waves: list[Wave] = []
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -85,8 +86,15 @@ class RawPanel(QWidget):
             QMessageBox.warning(self, "导入失败", str(err))
 
     def _on_export(self) -> None:
+        if self._raw_waves:
+            parts: list[str] = []
+            for wave in self._raw_waves:
+                v3_frames = self._conv.wave_to_v3_frames(wave.intervals, wave.intensities)
+                parts.append(self._conv.v3_to_raw(v3_frames))
+            self.export_edit.setPlainText("\n".join(parts))
+            return
         if self._current_wave is None:
-            QMessageBox.information(self, "导出", "请先从素材库加载一个波形")
+            QMessageBox.information(self, "导出", "请先从素材库选择波形或加载一个波形")
             return
         v3_frames = self._conv.wave_to_v3_frames(
             self._current_wave.intervals,
@@ -95,5 +103,7 @@ class RawPanel(QWidget):
         raw_str = self._conv.v3_to_raw(v3_frames)
         self.export_edit.setPlainText(raw_str)
 
-    def display_raw(self, raw_str: str) -> None:
-        self.export_edit.setPlainText(raw_str)
+    def set_raw_waves(self, waves: list[Wave]) -> None:
+        self._raw_waves = waves
+        if not waves:
+            self.export_edit.clear()

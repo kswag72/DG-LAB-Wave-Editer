@@ -151,7 +151,7 @@ class ConversionService:
         for sec in config.sections:
             pulse_time = len(sec.pulse) * _BASE_TICK_MS
             if sec.section_time > 0:
-                loops = max(1, math.ceil(sec.section_time * 1000 / pulse_time))
+                loops = max(1, math.ceil(sec.section_time * 1000 / pulse_time - 1e-9))
             else:
                 loops = 1
             total_points = len(sec.pulse) * loops
