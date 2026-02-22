@@ -102,10 +102,10 @@ class LibraryPanel(QWidget):
         add_button.clicked.connect(lambda _checked, idx=index: self._on_add_to_seq(idx))
 
         selected = index in self._raw_selected
-        raw_button = QPushButton("r")
-        raw_button.setFixedWidth(24)
+        raw_button = QPushButton("R")
+        raw_button.setFixedWidth(30)
         raw_button.setStyleSheet(
-            "background-color: #a8d8a8; color: #3a6b3a;" if selected else "background-color: #ffe2e2; color: #c9a0a0;"
+            "background-color: #a8d8a8; color: #1a4a1a; font-weight: bold;" if selected else "background-color: #ffe2e2; color: #8b4a4a; font-weight: bold;"
         )
         raw_button.clicked.connect(lambda _checked, idx=index: self._on_toggle_raw(idx))
         delete_button = QPushButton("×")

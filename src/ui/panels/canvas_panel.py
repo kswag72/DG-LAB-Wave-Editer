@@ -63,7 +63,7 @@ class CanvasPanel(QWidget):
         row = QHBoxLayout()
         self.precise_index = QSpinBox()
         self.precise_index.setRange(0, MAX_STEPS - 1)
-        self.precise_index.setPrefix("步骤: ")
+        self.precise_index.setPrefix("小节: ")
         self.precise_interval = QSpinBox()
         self.precise_interval.setRange(10, 1000)
         self.precise_interval.setValue(10)
