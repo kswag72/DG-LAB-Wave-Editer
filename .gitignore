@@ -22,8 +22,7 @@ dist/
 Thumbs.db
 .DS_Store
 
-# Backup / temp files
-main - 副本.py
+# Temp files
 nul
 
 # Font files (download separately, see README)

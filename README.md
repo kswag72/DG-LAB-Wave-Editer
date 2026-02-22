@@ -24,15 +24,15 @@ python -m venv venv
 # Windows CMD:
 venv\Scripts\activate.bat
 
-pip install PyQt6
-python main.py
+pip install -r configs/requirements.txt
+python -m src
 ```
 
 ### 构建 exe
 
 ```bash
 pip install pyinstaller
-python -m PyInstaller PulseWaveStudio.spec --clean
+python -m PyInstaller configs/PulseWaveStudio.spec --clean
 ```
 
 产出：`dist/PulseWaveStudio.exe`，单文件可分发。
@@ -49,19 +49,32 @@ python -m PyInstaller PulseWaveStudio.spec --clean
 ## 项目结构
 
 ```
-├── main.py                 # 入口
-├── PulseWaveStudio.spec    # PyInstaller 构建配置
+├── configs/
+│   ├── PulseWaveStudio.spec  # PyInstaller 构建配置
+│   └── requirements.txt      # 依赖
+├── docs/                      # 文档
+├── scripts/                   # 自动化脚本
+├── tests/                     # 测试
 ├── src/
-│   ├── IOC.ico             # 窗口图标
-│   ├── fonts/              # 字体 (需手动下载)
+│   ├── main.py                # 入口
+│   ├── __main__.py            # python -m src 支持
+│   ├── IOC.ico                # 窗口图标
+│   ├── fonts/                 # 字体 (需手动下载)
 │   ├── ui/
-│   │   ├── main_window.py  # 主界面
-│   │   ├── wave_canvas.py  # 波形画布
-│   │   ├── range_slider.py # 双端范围滑条
-│   │   └── styles.py       # 样式表
+│   │   ├── main_window.py     # 主界面 (面板组装 + 信号连接)
+│   │   ├── wave_canvas.py     # 波形画布
+│   │   ├── range_slider.py    # 双端范围滑条
+│   │   ├── styles.py          # 样式表
+│   │   └── panels/            # 独立面板模块
+│   │       ├── library_panel.py
+│   │       ├── canvas_panel.py
+│   │       ├── func_panel.py
+│   │       └── sequence_panel.py
 │   └── utils/
-│       ├── data_loader.py  # JSON5 解析与导出
-│       └── signal_ops.py   # 波形生成与平滑
+│       ├── data_loader.py     # JSON5 解析与导出
+│       └── signal_ops.py      # 波形生成与平滑
+├── README.md
+└── LICENSE
 ```
 
 ## 许可证

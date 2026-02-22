@@ -1,8 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
+# Run from project root: python -m PyInstaller configs/PulseWaveStudio.spec --clean
 
 
 a = Analysis(
-    ['main.py'],
+    ['src/main.py'],
     pathex=['.'],
     binaries=[],
     datas=[('src/IOC.ico', 'src'), ('src/fonts/MapleMono-NF-CN-ExtraBold.ttf', 'src/fonts')],
@@ -13,6 +14,11 @@ a = Analysis(
         'src.ui.wave_canvas',
         'src.ui.range_slider',
         'src.ui.styles',
+        'src.ui.panels',
+        'src.ui.panels.library_panel',
+        'src.ui.panels.canvas_panel',
+        'src.ui.panels.func_panel',
+        'src.ui.panels.sequence_panel',
         'src.utils',
         'src.utils.data_loader',
         'src.utils.signal_ops',
