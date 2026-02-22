@@ -50,3 +50,19 @@ class GapItem:
 
 
 SequenceEntry = WaveItem | GapItem
+
+
+@dataclass(frozen=True, slots=True)
+class RawSection:
+    freq_start_ms: float
+    freq_end_ms: float
+    section_time: float
+    freq_mode: str | bool
+    pulse: tuple[float, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RawConfig:
+    sections: tuple[RawSection, ...]
+    sleep_time: float
+    speed_factor: int
