@@ -1,5 +1,5 @@
 [project]
-name = "pulse-wave-studio"
+name = "dg-lab-wave-editer"
 version = "1.0.0"
 requires-python = ">=3.10"
 

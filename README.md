@@ -1,4 +1,4 @@
-# Coyote 波形绘制器 (PulseWaveStudio)
+# DG-LAB-Wave-Editer
 
 为 [DG-Lab-Coyote-Game-Hub](https://github.com/hyperzlib/DG-Lab-Coyote-Game-Hub) 设计的波形可视化编辑工具，支持手绘、函数生成、素材拼接和 JSON5 导入导出。
 
@@ -15,8 +15,8 @@
 需要 Python 3.10+。
 
 ```bash
-git clone https://github.com/kswag72/PulseWaveStudio.git
-cd PulseWaveStudio
+git clone https://github.com/kswag72/DG-LAB-Wave-Editer.git
+cd DG-LAB-Wave-Editer
 python -m venv venv
 
 # Windows PowerShell:
@@ -32,10 +32,10 @@ python -m src
 
 ```bash
 pip install pyinstaller
-python -m PyInstaller configs/PulseWaveStudio.spec --clean
+python -m PyInstaller configs/DG-LAB-Wave-Editer.spec --clean
 ```
 
-产出：`dist/PulseWaveStudio.exe`，单文件可分发。
+产出：`dist/DG-LAB-Wave-Editer.exe`，单文件可分发。
 
 ### 字体
 
@@ -50,7 +50,7 @@ python -m PyInstaller configs/PulseWaveStudio.spec --clean
 
 ```
 ├── configs/
-│   ├── PulseWaveStudio.spec  # PyInstaller 构建配置
+│   ├── DG-LAB-Wave-Editer.spec  # PyInstaller 构建配置
 │   └── requirements.txt      # 依赖
 ├── docs/                      # 文档
 ├── scripts/                   # 自动化脚本

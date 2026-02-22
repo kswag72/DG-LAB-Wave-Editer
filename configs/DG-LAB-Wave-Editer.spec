@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Run from project root: python -m PyInstaller configs/PulseWaveStudio.spec --clean
+# Run from project root: python -m PyInstaller configs/DG-LAB-Wave-Editer.spec --clean
 
 import os
 ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))
@@ -47,7 +47,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='PulseWaveStudio',
+    name='DG-LAB-Wave-Editer',
     icon=os.path.join(ROOT, 'src/IOC.ico'),
     debug=False,
     bootloader_ignore_signals=False,

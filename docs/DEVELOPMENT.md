@@ -1,14 +1,14 @@
-# PulseWaveStudio 二次开发手册
+# DG-LAB-Wave-Editer 二次开发手册
 
-这份文档面向希望对 PulseWaveStudio 进行功能扩展或二次开发的开发者。项目采用了 Service/Repository 分层架构，确保了业务逻辑与 UI 显示的彻底解耦。
+这份文档面向希望对 DG-LAB-Wave-Editer 进行功能扩展或二次开发的开发者。项目采用了 Service/Repository 分层架构，确保了业务逻辑与 UI 显示的彻底解耦。
 
 ## 1. 项目概览
 
-PulseWaveStudio 是一款专为 DG-Lab Coyote 电击控制器设计的波形可视化编辑器。它允许用户通过数学函数生成、手动绘制以及拼接复杂的波形序列。
+DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形可视化编辑器。它允许用户通过数学函数生成、手动绘制以及拼接复杂的波形序列。
 
 - 技术栈：Python 3.10+, PyQt6, JSON5
 - 核心功能：波形函数生成、可视化画布编辑、素材库管理、序列拼接与导出
-- 开源地址：https://github.com/kswag72/PulseWaveStudio
+ 开源地址：https://github.com/kswag72/DG-LAB-Wave-Editer
 
 ## 2. 项目结构
 
@@ -19,7 +19,7 @@ PulseWaveStudio 是一款专为 DG-Lab Coyote 电击控制器设计的波形可�
 ├── README.md
 ├── LICENSE
 ├── configs/
-│   ├── PulseWaveStudio.spec             # PyInstaller 打包配置文件
+│   ├── DG-LAB-Wave-Editer.spec             # PyInstaller 打包配置文件
 │   └── requirements.txt                 # 项目依赖 (PyQt6>=6.10.0)
 ├── docs/
 │   └── DEVELOPMENT.md                   # 本开发手册
@@ -115,8 +115,8 @@ self.seq_panel = SequencePanel(sequence_service, pulse_repository)
 
 1. 克隆代码库：
    ```bash
-   git clone https://github.com/kswag72/PulseWaveStudio.git
-   cd PulseWaveStudio
+   git clone https://github.com/kswag72/DG-LAB-Wave-Editer.git
+   cd DG-LAB-Wave-Editer
    ```
 2. 创建并激活虚拟环境：
    ```bash
@@ -136,9 +136,9 @@ self.seq_panel = SequencePanel(sequence_service, pulse_repository)
 6. 构建 exe 命令：
    ```bash
    pip install pyinstaller
-   python -m PyInstaller configs/PulseWaveStudio.spec --clean
+   python -m PyInstaller configs/DG-LAB-Wave-Editer.spec --clean
    ```
-   产出：`dist/PulseWaveStudio.exe`，单文件可分发。
+   产出：`dist/DG-LAB-Wave-Editer.exe`，单文件可分发。
 
 ## 5. 代码规范
 
