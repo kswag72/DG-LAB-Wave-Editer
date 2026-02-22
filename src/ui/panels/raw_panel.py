@@ -94,3 +94,6 @@ class RawPanel(QWidget):
         )
         raw_str = self._conv.v3_to_raw(v3_frames)
         self.export_edit.setPlainText(raw_str)
+
+    def display_raw(self, raw_str: str) -> None:
+        self.export_edit.setPlainText(raw_str)

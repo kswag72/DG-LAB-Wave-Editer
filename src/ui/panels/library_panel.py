@@ -19,19 +19,23 @@ from PyQt6.QtWidgets import (
 
 from src.domain.models import Wave
 from src.repositories.json5_library_repository import Json5LibraryRepository
+from src.services.conversion_service import ConversionService
 
 
 class LibraryPanel(QWidget):
     load_wave = pyqtSignal(object)
     add_wave_to_seq = pyqtSignal(object)
+    export_wave_raw = pyqtSignal(str)
 
     def __init__(
         self,
         library_repository: Json5LibraryRepository,
+        conversion_service: ConversionService,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._repo = library_repository
+        self._conv = conversion_service
         self.wave_lib: list[Wave] = []
         self.setAcceptDrops(True)
 
@@ -99,6 +103,10 @@ class LibraryPanel(QWidget):
         add_button.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
         add_button.clicked.connect(lambda _checked, idx=index: self._on_add_to_seq(idx))
 
+        raw_button = QPushButton("r")
+        raw_button.setFixedWidth(24)
+        raw_button.setStyleSheet("background-color: #d4edda; color: #6b8e6b;")
+        raw_button.clicked.connect(lambda _checked, idx=index: self._on_export_raw(idx))
         delete_button = QPushButton("×")
         delete_button.setFixedWidth(30)
         delete_button.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
@@ -108,6 +116,7 @@ class LibraryPanel(QWidget):
         row.addWidget(name_edit, 1)
         row.addWidget(steps_label)
         row.addWidget(add_button)
+        row.addWidget(raw_button)
         row.addWidget(delete_button)
         return frame
 
@@ -120,6 +129,12 @@ class LibraryPanel(QWidget):
 
     def _on_add_to_seq(self, index: int) -> None:
         self.add_wave_to_seq.emit(self.wave_lib[index])
+
+    def _on_export_raw(self, index: int) -> None:
+        wave = self.wave_lib[index]
+        v3_frames = self._conv.wave_to_v3_frames(wave.intervals, wave.intensities)
+        raw_str = self._conv.v3_to_raw(v3_frames)
+        self.export_wave_raw.emit(raw_str)
 
     def _delete_wave(self, index: int) -> None:
         del self.wave_lib[index]

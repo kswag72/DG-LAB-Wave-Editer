@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         library_repository = Json5LibraryRepository(id_service)
         pulse_repository = Json5PulseRepository()
         conversion_service = ConversionService()
-        self.library = LibraryPanel(library_repository)
+        self.library = LibraryPanel(library_repository, conversion_service)
         self.canvas_panel = CanvasPanel(wave_service)
         self.func_panel = FuncPanel(wave_service)
         self.seq_panel = SequencePanel(sequence_service, pulse_repository)
@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         self.raw_panel.import_wave.connect(self.library.add_wave)
         self.raw_panel.import_wave.connect(self.canvas_panel.load_wave)
         self.library.load_wave.connect(self.raw_panel.set_current_wave)
+        self.library.export_wave_raw.connect(self.raw_panel.display_raw)
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
