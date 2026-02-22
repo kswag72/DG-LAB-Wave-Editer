@@ -1,8 +1,20 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDoubleSpinBox,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
 
+from src.domain.models import MAX_STEPS
 from src.services.wave_service import WaveService
 from src.ui.range_slider import RangeSlider
 
@@ -18,12 +30,20 @@ class FuncPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self._build_target_and_function_row(layout)
-        self._build_parameter_row(layout)
+        top_row = QHBoxLayout()
+        top_row.addWidget(self._build_function_group())
+        top_row.addWidget(self._build_parameter_group())
+        layout.addLayout(top_row)
+
         self._build_range_row(layout)
 
-    def _build_target_and_function_row(self, parent_layout: QVBoxLayout) -> None:
-        row = QHBoxLayout()
+    def _build_function_group(self) -> QGroupBox:
+        group = QGroupBox("函数")
+        grid = QGridLayout(group)
+        grid.setContentsMargins(6, 2, 6, 2)
+        grid.setHorizontalSpacing(4)
+        grid.setVerticalSpacing(2)
+
         self.target_combo = QComboBox()
         self.target_combo.addItems(["强度", "间隔"])
         self.function_combo = QComboBox()
@@ -38,18 +58,23 @@ class FuncPanel(QWidget):
         self.amplitude_spin.setValue(100)
         self.target_combo.currentIndexChanged.connect(self._sync_amplitude_range)
 
-        row.addWidget(QLabel("目标:"))
-        row.addWidget(self.target_combo)
-        row.addWidget(QLabel("函数:"))
-        row.addWidget(self.function_combo)
-        row.addWidget(QLabel("周期:"))
-        row.addWidget(self.cycles_spin)
-        row.addWidget(QLabel("振幅:"))
-        row.addWidget(self.amplitude_spin)
-        parent_layout.addLayout(row)
+        grid.addWidget(QLabel("目标:"), 0, 0)
+        grid.addWidget(self.target_combo, 0, 1)
+        grid.addWidget(QLabel("函数:"), 0, 2)
+        grid.addWidget(self.function_combo, 0, 3)
+        grid.addWidget(QLabel("周期:"), 1, 0)
+        grid.addWidget(self.cycles_spin, 1, 1)
+        grid.addWidget(QLabel("振幅:"), 1, 2)
+        grid.addWidget(self.amplitude_spin, 1, 3)
+        return group
 
-    def _build_parameter_row(self, parent_layout: QVBoxLayout) -> None:
-        row = QHBoxLayout()
+    def _build_parameter_group(self) -> QGroupBox:
+        group = QGroupBox("参数")
+        grid = QGridLayout(group)
+        grid.setContentsMargins(6, 2, 6, 2)
+        grid.setHorizontalSpacing(4)
+        grid.setVerticalSpacing(2)
+
         self.exponent_spin = QDoubleSpinBox()
         self.exponent_spin.setRange(-10, 10)
         self.exponent_spin.setValue(2.0)
@@ -63,17 +88,17 @@ class FuncPanel(QWidget):
         self.offset_spin.setValue(0.0)
         self.offset_spin.setSingleStep(1.0)
 
-        row.addWidget(QLabel("指数:"))
-        row.addWidget(self.exponent_spin)
-        row.addWidget(QLabel("系数:"))
-        row.addWidget(self.coefficient_spin)
-        row.addWidget(QLabel("偏移:"))
-        row.addWidget(self.offset_spin)
-        parent_layout.addLayout(row)
+        grid.addWidget(QLabel("指数:"), 0, 0)
+        grid.addWidget(self.exponent_spin, 0, 1)
+        grid.addWidget(QLabel("系数:"), 0, 2)
+        grid.addWidget(self.coefficient_spin, 0, 3)
+        grid.addWidget(QLabel("偏移:"), 1, 0)
+        grid.addWidget(self.offset_spin, 1, 1)
+        return group
 
     def _build_range_row(self, parent_layout: QVBoxLayout) -> None:
         row = QHBoxLayout()
-        self.function_range = RangeSlider(0, 319)
+        self.function_range = RangeSlider(0, MAX_STEPS - 1)
         self.function_range.set_values(0, 59)
         generate_button = QPushButton("生成")
         generate_button.clicked.connect(self._apply_function)

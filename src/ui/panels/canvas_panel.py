@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -14,7 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.domain.models import Wave
+from src.domain.models import MAX_STEPS, Wave
 from src.services.wave_service import WaveService
 from src.ui.range_slider import RangeSlider
 from src.ui.wave_canvas import WaveCanvas
@@ -35,18 +36,33 @@ class CanvasPanel(QWidget):
         self.canvas_scroll.setWidgetResizable(False)
         self.canvas = WaveCanvas()
         self.canvas_scroll.setWidget(self.canvas)
-        self.canvas_scroll.setFixedHeight(350)
+        self.canvas_scroll.setFixedHeight(370)
         self.canvas_scroll.setFrameShape(QFrame.Shape.NoFrame)
         layout.addWidget(self.canvas_scroll)
 
+        self._build_chart_type_row(layout)
         self._build_precise_row(layout)
         self._build_batch_row(layout)
         self._build_control_row(layout)
 
+    def _build_chart_type_row(self, parent_layout: QVBoxLayout) -> None:
+        row = QHBoxLayout()
+        self.chart_type_combo = QComboBox()
+        self.chart_type_combo.addItems(["折线图", "面积图", "散点图", "阶梯图"])
+        self.chart_type_combo.currentIndexChanged.connect(self._on_chart_type_changed)
+        row.addWidget(QLabel("图表类型:"))
+        row.addWidget(self.chart_type_combo)
+        row.addStretch()
+        parent_layout.addLayout(row)
+
+    def _on_chart_type_changed(self, index: int) -> None:
+        self.canvas.chart_type = index
+        self.canvas.update()
+
     def _build_precise_row(self, parent_layout: QVBoxLayout) -> None:
         row = QHBoxLayout()
         self.precise_index = QSpinBox()
-        self.precise_index.setRange(0, 319)
+        self.precise_index.setRange(0, MAX_STEPS - 1)
         self.precise_index.setPrefix("步骤: ")
         self.precise_interval = QSpinBox()
         self.precise_interval.setRange(10, 1000)
@@ -74,7 +90,7 @@ class CanvasPanel(QWidget):
 
     def _build_batch_row(self, parent_layout: QVBoxLayout) -> None:
         row = QHBoxLayout()
-        self.batch_range = RangeSlider(0, 319)
+        self.batch_range = RangeSlider(0, MAX_STEPS - 1)
         self.batch_range.set_values(0, 59)
         self.batch_interval = QSpinBox()
         self.batch_interval.setRange(10, 1000)
@@ -101,10 +117,10 @@ class CanvasPanel(QWidget):
         row = QHBoxLayout()
         self.name_edit = QLineEdit("未命名素材")
         self.step_slider = QSlider(Qt.Orientation.Horizontal)
-        self.step_slider.setRange(1, 320)
+        self.step_slider.setRange(1, MAX_STEPS)
         self.step_slider.setValue(60)
         self.step_spin = QSpinBox()
-        self.step_spin.setRange(1, 320)
+        self.step_spin.setRange(1, MAX_STEPS)
         self.step_spin.setValue(60)
         self.step_slider.valueChanged.connect(self._sync_step_value)
         self.step_spin.valueChanged.connect(self._sync_step_value)
@@ -138,7 +154,7 @@ class CanvasPanel(QWidget):
         self.steps_changed.emit(value)
 
     def load_wave(self, wave: Wave) -> None:
-        new_steps = min(320, wave.steps)
+        new_steps = min(MAX_STEPS, wave.steps)
         self._sync_step_value(new_steps)
         self.name_edit.setText(wave.name)
         for idx in range(new_steps):
@@ -188,11 +204,11 @@ class CanvasPanel(QWidget):
             self.precise_intensity.blockSignals(False)
 
     def _reset_intervals(self) -> None:
-        self.canvas.intervals = [10] * 320
+        self.canvas.intervals = [10] * MAX_STEPS
         self.canvas.update()
 
     def _reset_intensities(self) -> None:
-        self.canvas.intensities = [0] * 320
+        self.canvas.intensities = [0] * MAX_STEPS
         self.canvas.update()
 
     def _save_to_library(self) -> None:

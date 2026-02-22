@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import (
@@ -7,6 +9,7 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -79,9 +82,17 @@ class LibraryPanel(QWidget):
         row = QHBoxLayout(frame)
         row.setContentsMargins(5, 2, 5, 2)
 
-        name_button = QPushButton(f"{wave.name} ({wave.steps}节)")
-        name_button.setStyleSheet("border:none; text-align:left; color: #cbf1f5;")
-        name_button.clicked.connect(lambda _checked, idx=index: self._on_load(idx))
+        load_button = QPushButton("加载")
+        load_button.setFixedWidth(40)
+        load_button.setStyleSheet("border:none; color: #cbf1f5;")
+        load_button.clicked.connect(lambda _checked, idx=index: self._on_load(idx))
+
+        name_edit = QLineEdit(wave.name)
+        name_edit.setStyleSheet("border:none; background:transparent; color: #cbf1f5;")
+        name_edit.editingFinished.connect(lambda idx=index, le=name_edit: self._on_rename(idx, le.text()))
+
+        steps_label = QLabel(f"({wave.steps}节)")
+        steps_label.setStyleSheet("color: #7a8a96; border:none;")
 
         add_button = QPushButton("+")
         add_button.setFixedWidth(30)
@@ -93,13 +104,19 @@ class LibraryPanel(QWidget):
         delete_button.setStyleSheet("background-color: #ffe2e2; color: #c9a0a0;")
         delete_button.clicked.connect(lambda _checked, idx=index: self._delete_wave(idx))
 
-        row.addWidget(name_button)
+        row.addWidget(load_button)
+        row.addWidget(name_edit, 1)
+        row.addWidget(steps_label)
         row.addWidget(add_button)
         row.addWidget(delete_button)
         return frame
 
     def _on_load(self, index: int) -> None:
         self.load_wave.emit(self.wave_lib[index])
+
+    def _on_rename(self, index: int, new_name: str) -> None:
+        if 0 <= index < len(self.wave_lib) and new_name:
+            self.wave_lib[index] = replace(self.wave_lib[index], name=new_name)
 
     def _on_add_to_seq(self, index: int) -> None:
         self.add_wave_to_seq.emit(self.wave_lib[index])

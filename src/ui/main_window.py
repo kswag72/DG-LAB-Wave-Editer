@@ -30,7 +30,7 @@ def _resolve_resource(relative_path: str) -> str:
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("coyote波形绘制器")
+        self.setWindowTitle("DG-LAB-波形编辑器")
         self.setWindowIcon(QIcon(_resolve_resource("src/IOC.ico")))
         self.resize(1350, 950)
         self.setAcceptDrops(True)

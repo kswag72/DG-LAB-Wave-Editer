@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-MAX_STEPS = 320
+MAX_STEPS = 100
 
 
 @dataclass(frozen=True, slots=True)
