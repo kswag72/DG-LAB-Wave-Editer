@@ -52,10 +52,10 @@ DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形�
 │       ├── styles.py                    # 全局 QSS 样式表定义
 │       └── panels/
 │           ├── __init__.py
-│           ├── library_panel.py         # 素材库 UI 面板 (可编辑波形名称)
+│           ├── library_panel.py         # 素材库 UI 面板 (可编辑波形名称, Raw 批量选择)
 │           ├── canvas_panel.py          # 画布操作 UI 面板 (图表类型切换)
 │           ├── func_panel.py            # 函数生成器 UI 面板 (QGroupBox 布局)
-│           ├── raw_panel.py             # Raw 字符串导入/导出面板
+│           ├── raw_panel.py             # Raw 字符串导入/导出面板 (支持批量导出)
 │           └── sequence_panel.py        # 序列拼接 UI 面板
 ```
 
@@ -96,7 +96,7 @@ UI 面板（Panels）只负责处理用户交互信号。所有的逻辑请求�
 [LibraryPanel] --add_wave_to_seq(Wave)--> [SequencePanel]
 [SequencePanel] --save_to_lib(Wave)--> [LibraryPanel]
 [RawPanel] --import_wave(Wave)--> [CanvasPanel] + [LibraryPanel]
-[RawPanel] <--export_wave(Wave)-- [LibraryPanel]
+[LibraryPanel] --raw_selection_changed(list[Wave])--> [RawPanel]
 ```
 
 **注入流程：**
@@ -114,7 +114,7 @@ self.library = LibraryPanel(library_repository)
 self.canvas_panel = CanvasPanel(wave_service)
 self.func_panel = FuncPanel(wave_service)
 self.seq_panel = SequencePanel(sequence_service, pulse_repository)
-self.raw_panel = RawPanel()
+self.raw_panel = RawPanel(conversion_service, wave_service)
 ```
 
 ## 4. 开发环境搭建
@@ -322,11 +322,14 @@ DG-Lab 的十六进制格式遵循以下逻辑：
 
 ### 6.7 Raw/V3 格式转换
 `ConversionService` 提供 raw 字符串与 expectedV3 格式之间的双向转换，位于 `src/services/conversion_service.py`。
-
 - `raw_to_v3(raw: str) -> list[dict]`：将十六进制 raw 字符串解析为 expectedV3 格式的字典列表。
 - `v3_to_raw(v3_data: list[dict]) -> str`：将 expectedV3 格式的字典列表编码为 raw 十六进制字符串。
 
-如需扩展新的转换格式，在 `ConversionService` 中添加对应的静态方法即可。`RawPanel` 面板已内置导入/导出 UI，可直接粘贴 raw 字符串导入波形或将波形导出为 raw 字符串。
+**V3 往返精度修正**：`v3_to_raw` 中对 `section_time` 转脉冲数的计算使用了 `math.ceil(... - 1e-9)` 修正浮点误差，避免整除场景下多算一个脉冲（例如 20 小节被错误识别为 38 小节）。
+
+**批量导出**：`RawPanel` 支持接收 `LibraryPanel` 通过 `raw_selection_changed` 信号传递的多个波形，点击导出按钮后一次性生成所有选中波形的 raw 字符串。素材库中每个波形行右侧的 R 按钮用于切换选中状态。
+
+如需扩展新的转换格式，在 `ConversionService` 中添加对应的静态方法即可。
 
 ### 6.8 画布图表类型
 `WaveCanvas` 支持四种图表显示类型，通过 `chart_type` 属性切换：
