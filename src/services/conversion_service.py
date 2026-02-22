@@ -117,6 +117,33 @@ class ConversionService:
         joined = ",".join(point_parts)
         return f"{_PROTOCOL_PREFIX}0,1,8={freq_idx},0,{duration},1,1/{joined}"
 
+    def v3_frames_to_wave_data(self, frames: list[str]) -> tuple[list[int], list[int]]:
+        """Extract intervals and intensities from V3 frames for Wave construction."""
+        intervals: list[int] = []
+        intensities: list[int] = []
+        for frame in frames:
+            freq_bytes = [int(frame[i * 2 : i * 2 + 2], 16) for i in range(4)]
+            val_bytes = [int(frame[i * 2 : i * 2 + 2], 16) for i in range(4, 8)]
+            avg_freq = sum(self._decode_freq_byte(b) for b in freq_bytes) / 4
+            avg_val = sum(val_bytes) / 4
+            intervals.append(max(10, min(1000, int(avg_freq))))
+            intensities.append(max(0, min(100, int(avg_val))))
+        return intervals, intensities
+
+    def wave_to_v3_frames(self, intervals: tuple[int, ...], intensities: tuple[int, ...]) -> list[str]:
+        """Encode Wave intervals/intensities into V3 frames."""
+        frames: list[str] = []
+        for interval, intensity in zip(intervals, intensities):
+            freq_byte = int(_encode_freq(float(interval))) & 0xFF
+            val_byte = int(intensity) & 0xFF
+            buf = bytearray(8)
+            for i in range(4):
+                buf[i] = freq_byte
+            for i in range(4, 8):
+                buf[i] = val_byte
+            frames.append(buf.hex().upper())
+        return frames
+
     def _config_to_v3(self, config: RawConfig) -> list[str]:
         all_freq: list[float] = []
         all_val: list[float] = []
