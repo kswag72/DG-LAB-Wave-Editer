@@ -9,6 +9,10 @@
 - **批量设置** — 双端范围滑条选区，一键填充间隔或强度
 - **素材拼接** — 多波形 + 静默间隔拼接为完整序列
 - **JSON5 导入导出** — 拖入 `pulse.json5` 导入，导出为 DG-Lab pulse 格式
+- **Raw 格式转换** — raw 字符串与 expectedV3 波形格式双向转换，支持导入/导出面板
+- **多种图表类型** — 折线图、面积图、散点图、阶梯图四种显示模式切换
+- **波形名称编辑** — 波形库中的波形名称支持直接点击修改
+- **段落数字标签** — 画布下方显示步进为 5 的段落编号
 
 ## 快速开始
 
@@ -60,16 +64,21 @@ python -m PyInstaller configs/DG-LAB-Wave-Editer.spec --clean
 │   ├── __main__.py            # python -m src 支持
 │   ├── IOC.ico                # 窗口图标
 │   ├── fonts/                 # 字体 (需手动下载)
+│   ├── domain/
+│   │   └── models.py          # 数据模型 (Wave, MAX_STEPS)
+│   ├── services/
+│   │   └── conversion_service.py  # raw/V3 格式转换服务
 │   ├── ui/
 │   │   ├── main_window.py     # 主界面 (面板组装 + 信号连接)
-│   │   ├── wave_canvas.py     # 波形画布
+│   │   ├── wave_canvas.py     # 波形画布 (多图表类型 + 段落标签)
 │   │   ├── range_slider.py    # 双端范围滑条
 │   │   ├── styles.py          # 样式表
 │   │   └── panels/            # 独立面板模块
-│   │       ├── library_panel.py
-│   │       ├── canvas_panel.py
-│   │       ├── func_panel.py
-│   │       └── sequence_panel.py
+│   │       ├── library_panel.py   # 波形库 (可编辑名称)
+│   │       ├── canvas_panel.py    # 画布控制面板
+│   │       ├── func_panel.py      # 函数生成器
+│   │       ├── raw_panel.py       # Raw 导入/导出
+│   │       └── sequence_panel.py  # 素材拼接
 │   └── utils/
 │       ├── data_loader.py     # JSON5 解析与导出
 │       └── signal_ops.py      # 波形生成与平滑
