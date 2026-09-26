@@ -33,7 +33,8 @@ class SequencePanel(QWidget):
         self.sequence: list[SequenceEntry] = []
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(8)
 
         layout.addWidget(QLabel("拼接序列:"))
         self._build_sequence_scroll(layout)
@@ -43,9 +44,11 @@ class SequencePanel(QWidget):
 
     def _build_sequence_scroll(self, parent_layout: QVBoxLayout) -> None:
         self.seq_scroll = QScrollArea()
-        self.seq_scroll.setFixedHeight(80)
+        self.seq_scroll.setFixedHeight(56)
         self.seq_widget = QWidget()
         self.seq_layout = QHBoxLayout(self.seq_widget)
+        self.seq_layout.setContentsMargins(2, 2, 2, 2)
+        self.seq_layout.setSpacing(6)
         self.seq_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.seq_scroll.setWidget(self.seq_widget)
         self.seq_scroll.setWidgetResizable(True)
@@ -59,7 +62,7 @@ class SequencePanel(QWidget):
         add_gap_button = QPushButton("插入静默(ms)")
         add_gap_button.clicked.connect(self._add_gap)
         save_sequence_button = QPushButton("序列合成入库")
-        save_sequence_button.setStyleSheet("background-color: #b8c8d4; color: #2c3a42; font-weight: bold;")
+        save_sequence_button.setObjectName("PrimaryButton")
         save_sequence_button.clicked.connect(self._save_sequence_to_library)
         clear_button = QPushButton("清空")
         clear_button.clicked.connect(self._clear_sequence)
@@ -74,6 +77,8 @@ class SequencePanel(QWidget):
 
     def _build_output_area(self, parent_layout: QVBoxLayout) -> None:
         self.output = QTextEdit()
+        self.output.setPlaceholderText("添加波形或静默后，点击“预览代码”查看拼接结果。")
+        self.output.setMinimumHeight(60)
         parent_layout.addWidget(self.output)
 
     def _build_button_row(self, parent_layout: QVBoxLayout) -> None:
@@ -102,6 +107,7 @@ class SequencePanel(QWidget):
         while self.seq_layout.count():
             item = self.seq_layout.takeAt(0)
             if item.widget():
+                item.widget().hide()
                 item.widget().deleteLater()
         for index, entry in enumerate(self.sequence):
             tag = self._build_sequence_tag(index, entry)
@@ -111,9 +117,10 @@ class SequencePanel(QWidget):
     def _build_sequence_tag(self, index: int, entry: SequenceEntry) -> QPushButton:
         is_wave = isinstance(entry, WaveItem)
         label = entry.name if is_wave else f"{entry.ms}ms"
-        color = "#cbf1f5" if is_wave else "#ffde7d"
-        tag = QPushButton(label)
-        tag.setStyleSheet(f"background: {color}; color: #2c3a42; font-weight: bold;")
+        tag = QPushButton(f"{label}  ×")
+        tag.setObjectName("SequenceTag")
+        tag.setProperty("gap", not is_wave)
+        tag.setToolTip(f"{label}\n点击从拼接序列中移除")
         tag.clicked.connect(lambda _checked, idx=index: self._remove_entry(idx))
         return tag
 

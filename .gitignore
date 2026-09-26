@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 
 # Virtual Environment internals
+.venv/
 Lib/
 Scripts/
 Include/

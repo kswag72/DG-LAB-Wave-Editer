@@ -2,7 +2,22 @@
 # Run from project root: python -m PyInstaller configs/DG-LAB-Wave-Editer.spec --clean
 
 import os
+import sys
+
+from PyQt6.QtCore import QLibraryInfo
+
 ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))
+
+if sys.platform == 'win32':
+    windows_root = os.environ['SystemRoot']
+    os.environ['PATH'] = os.pathsep.join([
+        QLibraryInfo.path(QLibraryInfo.LibraryPath.BinariesPath),
+        os.path.dirname(sys.executable),
+        sys.base_prefix,
+        os.path.join(sys.base_prefix, 'DLLs'),
+        os.path.join(windows_root, 'System32'),
+        windows_root,
+    ])
 
 
 a = Analysis(
