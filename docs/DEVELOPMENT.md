@@ -337,6 +337,7 @@ DG-Lab 的十六进制格式遵循以下逻辑：
 
 ### 6.7 Raw/V3 格式转换
 `ConversionService` 提供 raw 字符串与 expectedV3 格式之间的双向转换，位于 `src/services/conversion_service.py`。
+- `parse_raw` 支持带 `全局设置=分段数据` 和仅含分段数据的两种输入；后者默认 `sleep_time=0`、`speed_factor=1`，不会把第一段参数误当作全局设置。`Dungeonlab+pulse:` 前缀可省略。
 - `raw_to_v3(raw_str: str) -> list[str]`：将 `Dungeonlab+pulse:` 字符串转换为 V3 帧数组，每帧 16 个十六进制字符。
 - `v3_to_raw(frames: list[str]) -> str`：将 V3 帧数组转换为单段 raw 字符串，会平均频率、去掉末尾零强度帧，不能承诺无损往返。
 

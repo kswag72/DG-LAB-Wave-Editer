@@ -381,6 +381,22 @@ class EditorTests(unittest.TestCase):
         self.assertEqual(len(self.window.library.wave_lib), 2)
         self.assertNotEqual(self.window.library.wave_lib[1].id, original.id)
 
+    def test_headerless_raw_import_reaches_library_and_canvas(self) -> None:
+        raw = (Path(__file__).parent / "fixtures" / "headerless_multi_section.raw").read_text()
+        self.window.raw_panel.import_edit.setPlainText(raw)
+        with patch.object(QMessageBox, "warning") as warning:
+            self.window.raw_panel._on_import()
+        warning.assert_not_called()
+        self.assertEqual(len(self.window.library.wave_lib), 1)
+        imported = self.window.library.wave_lib[0]
+        self.assertEqual(imported.steps, 200)
+        self.assertEqual(imported.intensities[:7], (0, 16, 33, 50, 66, 83, 100))
+        self.assertEqual(imported.intensities[-2:], (0, 20))
+        self.assertEqual(self.panel.canvas.steps, 200)
+        self.assertEqual(tuple(self.panel.canvas.intervals[:200]), imported.intervals)
+        self.assertEqual(tuple(self.panel.canvas.intensities[:200]), imported.intensities)
+        self.assertEqual(self.window.raw_panel._current_wave, imported)
+
 
 if __name__ == "__main__":
     unittest.main()

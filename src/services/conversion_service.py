@@ -24,15 +24,19 @@ class ConversionService:
     """Bidirectional converter between Dungeonlab raw strings and V3 frame arrays."""
 
     def parse_raw(self, raw_str: str) -> RawConfig:
-        data = raw_str
+        data = raw_str.strip()
         if data.startswith(_PROTOCOL_PREFIX):
             data = data[len(_PROTOCOL_PREFIX) :]
 
-        header_str, rest = data.split("=", 1)
-        header = [int(x) for x in header_str.split(",")]
-
-        sleep_code = header[0]
-        speed_factor = header[1]
+        if "=" in data:
+            header_str, rest = data.split("=", 1)
+            header = [int(x) for x in header_str.split(",")]
+            sleep_code = header[0]
+            speed_factor = header[1]
+        else:
+            rest = data
+            sleep_code = 0
+            speed_factor = 1
 
         if sleep_code == 0:
             sleep_time = 0.0
