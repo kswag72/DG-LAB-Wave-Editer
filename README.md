@@ -2,9 +2,8 @@
 
 为 [DG-Lab-Coyote-Game-Hub](https://github.com/hyperzlib/DG-Lab-Coyote-Game-Hub) 设计的波形可视化编辑工具，支持手绘、函数生成、素材拼接和 JSON5 导入导出。
 
-粉蓝配色、圆角卡片与分区工作台，支持完整的 1000 帧编辑。Windows 单文件 exe 请从 [GitHub Releases](https://github.com/kswag72/DG-LAB-Wave-Editer/releases) 下载。
+Windows 单文件 exe 请从 [GitHub Releases](https://github.com/kswag72/DG-LAB-Wave-Editer/releases) 下载。
 
-![粉蓝波形工作台](docs/images/editor-pastel.png)
 
 ## 功能
 
