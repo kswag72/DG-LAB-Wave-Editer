@@ -17,8 +17,10 @@ def _font_path() -> str:
 
 def main() -> None:
     app = QApplication(sys.argv)
-    QFontDatabase.addApplicationFont(_font_path())
-    app.setFont(QFont("Maple Mono NF CN", 10))
+    font_id = QFontDatabase.addApplicationFont(_font_path())
+    families = QFontDatabase.applicationFontFamilies(font_id)
+    if families:
+        app.setFont(QFont(families[0], 10))
     w = MainWindow()
     w.show()
     sys.exit(app.exec())

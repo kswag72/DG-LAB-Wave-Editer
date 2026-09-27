@@ -1,6 +1,21 @@
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent
+from PyQt6.QtGui import QColor, QIntValidator, QMouseEvent, QPainter, QPaintEvent, QValidator
 from PyQt6.QtWidgets import QHBoxLayout, QSpinBox, QWidget
+
+
+class FrameSpinBox(QSpinBox):
+    def textFromValue(self, value: int) -> str:
+        return str(value + 1)
+
+    def valueFromText(self, text: str) -> int:
+        number = text.removeprefix(self.prefix()).removesuffix(self.suffix()).strip()
+        return int(number) - 1 if number else self.minimum()
+
+    def validate(self, text: str, pos: int) -> tuple[QValidator.State, str, int]:
+        number = text.removeprefix(self.prefix()).removesuffix(self.suffix()).strip()
+        validator = QIntValidator(self.minimum() + 1, self.maximum() + 1)
+        state, _, _ = validator.validate(number, min(pos, len(number)))
+        return state, text, pos
 
 
 class _DualSliderTrack(QWidget):
@@ -20,8 +35,11 @@ class _DualSliderTrack(QWidget):
     def set_range_bounds(self, min_val: int, max_val: int) -> None:
         self._min = min_val
         self._max = max_val
-        self._low = max(self._low, min_val)
-        self._high = min(self._high, max_val)
+        self.set_values(self._low, self._high)
+
+    def set_values(self, lo: int, hi: int) -> None:
+        self._low = max(self._min, min(lo, self._max))
+        self._high = max(self._low, min(hi, self._max))
         self.update()
 
     def set_low(self, v: int) -> None:
@@ -59,7 +77,7 @@ class _DualSliderTrack(QWidget):
         p.setBrush(QColor("#cbf1f5"))
         p.drawRoundedRect(x_lo, y_mid - 2, max(x_hi - x_lo, 1), 4, 2, 2)
         for x in (x_lo, x_hi):
-            p.setBrush(QColor("#cbf1f5"))
+            p.setBrush(QColor("#ffe2e2"))
             p.drawEllipse(x - 6, y_mid - 6, 12, 12)
             p.setBrush(QColor("#3a4149"))
             p.drawEllipse(x - 3, y_mid - 3, 6, 6)
@@ -98,12 +116,12 @@ class RangeSlider(QWidget):
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(4)
-        self.spin_lo = QSpinBox()
+        self.spin_lo = FrameSpinBox()
         self.spin_lo.setRange(min_val, max_val)
         self.spin_lo.setValue(min_val)
         self.spin_lo.setFixedWidth(60)
         self.track = _DualSliderTrack(min_val, max_val)
-        self.spin_hi = QSpinBox()
+        self.spin_hi = FrameSpinBox()
         self.spin_hi.setRange(min_val, max_val)
         self.spin_hi.setValue(max_val)
         self.spin_hi.setFixedWidth(60)
@@ -117,19 +135,21 @@ class RangeSlider(QWidget):
     def set_range_bounds(self, min_val: int, max_val: int) -> None:
         self._min = min_val
         self._max = max_val
+        self.spin_lo.blockSignals(True)
+        self.spin_hi.blockSignals(True)
         self.spin_lo.setRange(min_val, max_val)
         self.spin_hi.setRange(min_val, max_val)
         self.track.set_range_bounds(min_val, max_val)
+        self.set_values(self.track.low(), self.track.high())
 
     def set_values(self, lo: int, hi: int) -> None:
+        self.track.set_values(lo, hi)
         self.spin_lo.blockSignals(True)
         self.spin_hi.blockSignals(True)
-        self.spin_lo.setValue(lo)
-        self.spin_hi.setValue(hi)
+        self.spin_lo.setValue(self.track.low())
+        self.spin_hi.setValue(self.track.high())
         self.spin_lo.blockSignals(False)
         self.spin_hi.blockSignals(False)
-        self.track.set_low(lo)
-        self.track.set_high(hi)
 
     def low(self) -> int:
         return self.track.low()

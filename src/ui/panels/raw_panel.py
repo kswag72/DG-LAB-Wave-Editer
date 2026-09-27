@@ -34,17 +34,19 @@ class RawPanel(QWidget):
 
         self._raw_waves: list[Wave] = []
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(10)
 
         self._build_import_row(layout)
         self._build_export_row(layout)
+        layout.addStretch()
 
     def _build_import_row(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(QLabel("导入 Raw 字符串"))
         row = QHBoxLayout()
         self.import_edit = QTextEdit()
         self.import_edit.setPlaceholderText("粘贴 Dungeonlab raw 字符串...")
-        self.import_edit.setFixedHeight(50)
+        self.import_edit.setFixedHeight(64)
         import_button = QPushButton("导入")
         import_button.setFixedWidth(80)
         import_button.clicked.connect(self._on_import)
@@ -58,7 +60,7 @@ class RawPanel(QWidget):
         self.export_edit = QTextEdit()
         self.export_edit.setReadOnly(True)
         self.export_edit.setPlaceholderText("从素材库加载波形后点击导出...")
-        self.export_edit.setFixedHeight(50)
+        self.export_edit.setFixedHeight(64)
         export_button = QPushButton("导出")
         export_button.setFixedWidth(80)
         export_button.clicked.connect(self._on_export)
@@ -68,6 +70,11 @@ class RawPanel(QWidget):
 
     def set_current_wave(self, wave: Wave) -> None:
         self._current_wave = wave
+        self.export_edit.clear()
+
+    def clear_current_wave(self) -> None:
+        self._current_wave = None
+        self.export_edit.clear()
 
     def _on_import(self) -> None:
         raw_str = self.import_edit.toPlainText().strip()
@@ -105,5 +112,4 @@ class RawPanel(QWidget):
 
     def set_raw_waves(self, waves: list[Wave]) -> None:
         self._raw_waves = waves
-        if not waves:
-            self.export_edit.clear()
+        self.export_edit.clear()

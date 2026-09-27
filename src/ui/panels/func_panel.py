@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.domain.models import MAX_STEPS
 from src.services.wave_service import WaveService
 from src.ui.range_slider import RangeSlider
 
@@ -28,7 +27,8 @@ class FuncPanel(QWidget):
         self._wave_svc = wave_service
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(14)
 
         top_row = QHBoxLayout()
         top_row.addWidget(self._build_function_group())
@@ -36,11 +36,12 @@ class FuncPanel(QWidget):
         layout.addLayout(top_row)
 
         self._build_range_row(layout)
+        layout.addStretch()
 
     def _build_function_group(self) -> QGroupBox:
         group = QGroupBox("函数")
         grid = QGridLayout(group)
-        grid.setContentsMargins(6, 2, 6, 2)
+        grid.setContentsMargins(12, 18, 12, 10)
         grid.setHorizontalSpacing(4)
         grid.setVerticalSpacing(2)
 
@@ -71,7 +72,7 @@ class FuncPanel(QWidget):
     def _build_parameter_group(self) -> QGroupBox:
         group = QGroupBox("参数")
         grid = QGridLayout(group)
-        grid.setContentsMargins(6, 2, 6, 2)
+        grid.setContentsMargins(12, 18, 12, 10)
         grid.setHorizontalSpacing(4)
         grid.setVerticalSpacing(2)
 
@@ -98,7 +99,7 @@ class FuncPanel(QWidget):
 
     def _build_range_row(self, parent_layout: QVBoxLayout) -> None:
         row = QHBoxLayout()
-        self.function_range = RangeSlider(0, MAX_STEPS - 1)
+        self.function_range = RangeSlider(0, self._steps - 1)
         self.function_range.set_values(0, 59)
         generate_button = QPushButton("生成")
         generate_button.clicked.connect(self._apply_function)
@@ -137,11 +138,12 @@ class FuncPanel(QWidget):
         self.wave_generated.emit(result, target, range_lo, range_hi)
 
     def set_max_step(self, value: int) -> None:
+        was_full_range = self.function_range.low() == 0 and self.function_range.high() == self._steps - 1
         self._steps = value
         upper = max(0, value - 1)
         self.function_range.set_range_bounds(0, upper)
-        if self.function_range.high() >= value:
-            self.function_range.set_values(self.function_range.low(), upper)
+        if was_full_range:
+            self.function_range.set_values(0, upper)
 
     @property
     def _steps(self) -> int:

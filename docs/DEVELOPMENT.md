@@ -2,6 +2,8 @@
 
 这份文档面向希望对 DG-LAB-Wave-Editer 进行功能扩展或二次开发的开发者。项目采用了 Service/Repository 分层架构，确保了业务逻辑与 UI 显示的彻底解耦。
 
+运行入口、工作范围和已核实问题见 [AGENTS.md](../AGENTS.md)。本文的扩展示例仅供参考，不代表待实施计划。
+
 ## 1. 项目概览
 
 DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形可视化编辑器。它允许用户通过数学函数生成、手动绘制以及拼接复杂的波形序列。
@@ -23,8 +25,7 @@ DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形�
 │   └── requirements.txt                 # 项目依赖 (PyQt6>=6.10.0)
 ├── docs/
 │   └── DEVELOPMENT.md                   # 本开发手册
-├── tests/                               # 单元测试目录
-├── scripts/                             # 辅助脚本
+├── tests/                              # 编辑/保存回归；legacy/ 保留早期独立转换实现
 ├── src/
 │   ├── __init__.py
 │   ├── __main__.py                      # 程序入口，支持 python -m src 启动
@@ -69,18 +70,18 @@ DG-LAB-Wave-Editer 是一款专为 DG-Lab Coyote 电击控制器设计的波形�
 - `WaveItem`: 包装 Wave 的条目，用于序列显示。
 - `GapItem`: 包装静默时长（毫秒）的条目。
 - `SequenceEntry`: `WaveItem | GapItem` 的联合类型。
-- `MAX_STEPS = 100`: 限制单个波形的最大步数。
+- `MAX_STEPS = 1000`: 当前画布和 `Wave.validate()` 的帧数上限。载入前先验证，超限则提示并保留当前编辑内容；仓库读取和序列拼接保留原长度，不静默截断。
 
 ### Service 层
 处理纯业务逻辑，不涉及任何 UI 控件。
-- `IdService`: 负责生成 32 位随机十六进制 ID，确保每个波形在库中唯一。
+- `IdService`: 将 32 bit 随机整数转为十六进制字符串（最多 8 个字符），当前没有碰撞检测。
 - `WaveService`: 包含正弦、方波、锯齿、三角、幂、多项式、指数、对数、指数衰减、S形等 10 种内置数学函数。它还负责波形的平滑、钳位（Clamp）处理。
 - `SequenceService`: 负责将多个 `WaveItem` 和 `GapItem` 合并为单个 `Wave`，并将其转化为 DG-Lab 协议所需的十六进制字符串。
-- `ConversionService`: 负责 raw 字符串（十六进制脉冲数据）与 expectedV3 波形格式之间的双向转换。提供 `raw_to_v3` 和 `v3_to_raw` 两个静态方法。
+- `ConversionService`: 负责 `Dungeonlab+pulse:` 字符串与 V3 十六进制帧数组之间的转换。`raw_to_v3` 和 `v3_to_raw` 均为实例方法；反向转换有损。
 
 ### Repository 层
 处理数据的持久化与反序列化。
-- `Json5LibraryRepository`: 负责波形库文件的读取与保存。它将 `Wave` 对象转换为 JSON5 格式，并处理 ID 校验。
+- `Json5LibraryRepository`: 负责波形库文件的读取与保存。当前通过正则预处理后调用标准库 `json`，只覆盖部分 JSON5 语法；缺失 ID 时生成 ID，没有 ID 校验。
 - `Json5PulseRepository`: 负责最终导出文件的写入。
 
 ### UI 层与依赖注入
@@ -98,6 +99,14 @@ UI 面板（Panels）只负责处理用户交互信号。所有的逻辑请求�
 [RawPanel] --import_wave(Wave)--> [CanvasPanel] + [LibraryPanel]
 [LibraryPanel] --raw_selection_changed(list[Wave])--> [RawPanel]
 ```
+
+画布的 `save_wave` 连接 `LibraryPanel.save_wave`：更新已加载条目、保留 ID；新建或另存副本追加条目。保存目标按实际载入的素材跟踪，重复导入相同 ID 时也只更新当前条目。保存后刷新 Raw 选择数据，并清除旧转换文本。素材库保存仍在内存中，导出素材库才写文件。
+
+主窗口使用水平 `QSplitter` 组织素材侧栏与编辑区。画布保持完整高度，下方四个工具页分别用 `QScrollArea` 包装 `CanvasPanel.edit_tools`、函数、序列和 Raw 面板，窄窗口中允许滚动。工具页切换同步当前选区；缩放和定位只更新视图。`FrameSpinBox` 对外显示 1–1000，信号和内部值仍使用 0 起算索引。
+
+`CanvasPanel.is_dirty` 比较当前有效帧及名称与上次载入/保存的快照；`LibraryPanel.is_modified` 单独记录素材库是否尚未导出。主窗口在切换、新建与关闭时处理未保存编辑，在关闭时处理未导出的素材库；取消文件对话框不会清除修改状态。
+
+画布长度变化同步精确编辑、批量范围和函数范围；原来全选时扩展为新的全选范围，局部选区则保留并限制在有效帧内。载入另一条素材会重置尾部缓冲，避免扩展长度时混入旧数据。
 
 **注入流程：**
 在 `MainWindow.__init__` 中，按顺序实例化服务。先创建 `IdService`，再将其注入到 `WaveService`，最后将所有服务与仓库注入到各个 UI 面板的构造函数中。
@@ -126,8 +135,8 @@ self.raw_panel = RawPanel(conversion_service, wave_service)
    ```
 2. 创建并激活虚拟环境：
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # Windows 使用 venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # Windows 使用 .venv\Scripts\activate
    ```
 3. 安装依赖：
    ```bash
@@ -145,6 +154,10 @@ self.raw_panel = RawPanel(conversion_service, wave_service)
    python -m PyInstaller configs/DG-LAB-Wave-Editer.spec --clean
    ```
    产出：`dist/DG-LAB-Wave-Editer.exe`，单文件可分发。
+
+   现有 spec 将字体列为必需资源；缺少字体时可运行源码，但不能直接按此配置打包。历史校验脚本的运行方式及限制见 [README](../README.md#历史校验脚本)。
+
+   Windows spec 将当前构建进程的 DLL 搜索 PATH 限定为 Qt、Python 与 Windows 系统目录，避免从其他工具的 PATH 收集同名 ICU / C 运行库，导致生成的 exe 无法加载 Qt。修改打包规则后应使用 `--clean` 或新的 `--workpath`，并实际启动生成的 exe 检查加载日志。
 
 ## 5. 代码规范
 
@@ -313,21 +326,24 @@ DG-Lab 的十六进制格式遵循以下逻辑：
 如果要修改导出逻辑，请编辑 `src/services/sequence_service.py` 中的 `build_pulse_lines` 函数。
 
 ### 6.6 修改主题样式
-编辑 `src/ui/styles.py` 中的 `MAIN_STYLESHEET` 字符串。项目采用暗色调方案：
-- 背景：`#3a4149`
-- 控件背景：`#2e3740`
-- 主色调（青色）：`#cbf1f5`
-- 强调色（粉色）：`#ffe2e2`
-- 辅助色（黄色）：`#ffde7d`
+编辑 `src/ui/styles.py` 中的 `MAIN_STYLESHEET` 字符串。项目保留原粉蓝配色，使用圆角卡片和按钮：
+- 窗口背景：`#3a4149`，面板背景：`#414955`
+- 输入控件背景：`#2e3740`
+- 普通操作与选中页签（浅蓝）：`#cbf1f5`
+- 主要操作与强度图例（浅粉）：`#ffe2e2`
+- 间隔图例与 Raw 选中状态（黄色）：`#ffde7d`
+
+标题旁的小爱心由 `src/ui/brand_badge.py` 使用 QPainter 绘制，不依赖字体字符或外部图片。
 
 ### 6.7 Raw/V3 格式转换
 `ConversionService` 提供 raw 字符串与 expectedV3 格式之间的双向转换，位于 `src/services/conversion_service.py`。
-- `raw_to_v3(raw: str) -> list[dict]`：将十六进制 raw 字符串解析为 expectedV3 格式的字典列表。
-- `v3_to_raw(v3_data: list[dict]) -> str`：将 expectedV3 格式的字典列表编码为 raw 十六进制字符串。
+- `parse_raw` 支持带 `全局设置=分段数据` 和仅含分段数据的两种输入；后者默认 `sleep_time=0`、`speed_factor=1`，不会把第一段参数误当作全局设置。`Dungeonlab+pulse:` 前缀可省略。
+- `raw_to_v3(raw_str: str) -> list[str]`：将 `Dungeonlab+pulse:` 字符串转换为 V3 帧数组，每帧 16 个十六进制字符。
+- `v3_to_raw(frames: list[str]) -> str`：将 V3 帧数组转换为单段 raw 字符串，会平均频率、去掉末尾零强度帧，不能承诺无损往返。
 
-**V3 往返精度修正**：`v3_to_raw` 中对 `section_time` 转脉冲数的计算使用了 `math.ceil(... - 1e-9)` 修正浮点误差，避免整除场景下多算一个脉冲（例如 20 小节被错误识别为 38 小节）。
+**时长精度修正**：`_config_to_v3` 中对 `section_time` 转循环数的计算使用了 `math.ceil(... - 1e-9)` 修正浮点误差，避免整除场景下多算一个循环。这不等于所有转换样例或往返场景都已通过。
 
-**批量导出**：`RawPanel` 支持接收 `LibraryPanel` 通过 `raw_selection_changed` 信号传递的多个波形，点击导出按钮后一次性生成所有选中波形的 raw 字符串。素材库中每个波形行右侧的 R 按钮用于切换选中状态。
+**批量导出**：`RawPanel` 支持接收 `LibraryPanel` 通过 `raw_selection_changed` 信号传递的多个波形，点击导出按钮后一次性生成所有选中波形的 raw 字符串。素材卡片中的 Raw 按钮用于切换选中状态。
 
 如需扩展新的转换格式，在 `ConversionService` 中添加对应的静态方法即可。
 
@@ -347,7 +363,7 @@ DG-Lab 的十六进制格式遵循以下逻辑：
 ```json5
 [
   {
-    id: 'a1b2c3d4...',         // 32位唯一标识
+    id: 'a1b2c3d4',            // 字符串标识，导入时保留
     name: '示例波形',
     pulseData: [
       '0A0A0A0A64646464',   // 第1步：interval=10(0A), intensity=100(64)
@@ -357,9 +373,7 @@ DG-Lab 的十六进制格式遵循以下逻辑：
 ]
 ```
 
-解析逻辑：
-- 读取前 2 字符，十六进制转十进制得到 `interval` (范围 10-1000)。
-- 读取第 9, 10 两个字符，十六进制转十进制得到 `intensity` (范围 0-100)。
+当前素材库解析只读取前 2 字符作为 `interval`、第 9/10 字符作为 `intensity`；输出时分别重复 4 次。因此四组子采样不同的帧不能保证无损。这里的字节值也没有像 `ConversionService` 一样解码为 10–1000 的间隔值。素材库和序列导出仍直接使用 `hex(interval)`；间隔超过 255 时会生成超过 16 字符的帧。这些是现有实现差异，不应当作协议规范。
 
 ## 8. 提交规范
 
